@@ -78,9 +78,7 @@ namespace Mure.Test.Compilers
 		[TestCase("\\i")]
 		public void DetectSyntaxError(string pattern)
 		{
-			var compiler = new RegexCompiler<bool>();
-
-			Assert.Throws<ArgumentException>(() => compiler.Compile(new[]
+			Assert.Throws<ArgumentException>(() => ScannerFactory.CreateRegex(new[]
 			{
 				(pattern, true)
 			}));
@@ -202,8 +200,7 @@ namespace Mure.Test.Compilers
 
 		private static void CompileAndAssert(string pattern, string subject, string capture)
 		{
-			var compiler = new RegexCompiler<bool>();
-			var scanner = compiler.Compile(new[]
+			var scanner = ScannerFactory.CreateRegex(new[]
 			{
 				(pattern, true)
 			});

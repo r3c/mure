@@ -294,7 +294,7 @@ namespace Mure.Compilers
 		}
 	}
 
-	public class RegexCompiler<TValue> : ICompiler<IEnumerable<(string, TValue)>, TValue>
+	class RegexCompiler<TValue> : ICompiler<IEnumerable<(string, TValue)>, TValue>
 	{
 		public IScanner<TValue> Compile(IEnumerable<(string, TValue)> input)
 		{
