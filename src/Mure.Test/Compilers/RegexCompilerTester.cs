@@ -67,20 +67,42 @@ namespace Mure.Test.Compilers
 			CompileAndAssert(pattern, subject, capture);
 		}
 
-		[TestCase("[a")]
-
-		[TestCase("a{1")]
-		[TestCase("a{a")]
-		[TestCase("a{2,1}")]
-		[TestCase("a{1,1,1}")]
-
-		[TestCase("\\i")]
-		public void DetectSyntaxError(string pattern)
+		[TestCase("[a", 4)]
+		[TestCase("a{1", 5)]
+		[TestCase("a{a", 4)]
+		[TestCase("a{2,1}", 7)]
+		[TestCase("a{1,1,1}", 7)]
+		[TestCase("\\i", 2)]
+		public void DetectSyntaxError(string pattern, int position)
 		{
-			Assert.Throws<ArgumentException>(() => Matcher.CreateFromRegex(new[]
+			var exception = Assert.Throws<ArgumentException>(() => Matcher.CreateFromRegex(new[]
 			{
 				(pattern, true)
 			}));
+
+			Assert.That(exception.Message, Does.EndWith($"at position {position}"));
+		}
+
+		[TestCase("\\(", "(", "(")]
+		[TestCase("\\)", ")", ")")]
+		[TestCase("\\*", "*", "*")]
+		[TestCase("\\+", "+", "+")]
+		[TestCase("\\-", "-", "-")]
+		[TestCase("\\.", ".", ".")]
+		[TestCase("\\?", "?", "?")]
+		[TestCase("\\[", "[", "[")]
+		[TestCase("\\]", "]", "]")]
+		[TestCase("\\\\'", "\\'", "\\'")]
+		[TestCase("\\^", "^", "^")]
+		[TestCase("\\{", "{", "{")]
+		[TestCase("\\|", "|", "|")]
+		[TestCase("\\}", "}", "}")]
+		[TestCase("\\n", "\n", "\n")]
+		[TestCase("\\r", "\r", "\r")]
+		[TestCase("\\t", "\t", "\t")]
+		public void Escape(string pattern, string subject, string capture)
+		{
+			CompileAndAssert(pattern, subject, capture);
 		}
 
 		[TestCase("ab", "a", null)]
@@ -144,28 +166,6 @@ namespace Mure.Test.Compilers
 		[TestCase("a(b|c)*d", "acd", "acd")]
 		[TestCase("a(b|c)*d", "abccbd", "abccbd")]
 		public void Sequence(string pattern, string subject, string capture)
-		{
-			CompileAndAssert(pattern, subject, capture);
-		}
-
-		[TestCase("\\(", "(", "(")]
-		[TestCase("\\)", ")", ")")]
-		[TestCase("\\*", "*", "*")]
-		[TestCase("\\+", "+", "+")]
-		[TestCase("\\-", "-", "-")]
-		[TestCase("\\.", ".", ".")]
-		[TestCase("\\?", "?", "?")]
-		[TestCase("\\[", "[", "[")]
-		[TestCase("\\]", "]", "]")]
-		[TestCase("\\\\'", "\\'", "\\'")]
-		[TestCase("\\^", "^", "^")]
-		[TestCase("\\{", "{", "{")]
-		[TestCase("\\|", "|", "|")]
-		[TestCase("\\}", "}", "}")]
-		[TestCase("\\n", "\n", "\n")]
-		[TestCase("\\r", "\r", "\r")]
-		[TestCase("\\t", "\t", "\t")]
-		public void Special(string pattern, string subject, string capture)
 		{
 			CompileAndAssert(pattern, subject, capture);
 		}

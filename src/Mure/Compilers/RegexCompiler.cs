@@ -96,7 +96,7 @@ namespace Mure.Compilers
 						if (atTopLevel)
 							return Node.CreateAlternative(alernatives);
 
-						throw new ArgumentException("unfinished sequence");
+						throw CreateException("unfinished sequence", iterator.Position);
 
 					case LexemType.Escape:
 						node = Node.CreateCharacter(match.Value.Replacement);
@@ -167,7 +167,20 @@ namespace Mure.Compilers
 			}
 		}
 
-		public static IReadOnlyList<NodeRange> MatchClass(IMatchIterator<Lexem> iterator, Match<Lexem> match)
+		public static Match<Lexem> NextOrThrow(IMatchIterator<Lexem> iterator)
+		{
+			if (!iterator.TryMatchNext(out var match))
+				throw CreateException("unrecognized character", iterator.Position);
+
+			return match;
+		}
+
+		private static Exception CreateException(string message, int position)
+		{
+			return new ArgumentException($"{message} at position {position}");
+		}
+
+		private static IReadOnlyList<NodeRange> MatchClass(IMatchIterator<Lexem> iterator, Match<Lexem> match)
 		{
 			if (match.Value.Type == LexemType.Negate)
 				throw new NotImplementedException("negated character classes are not supported yet");
@@ -192,7 +205,7 @@ namespace Mure.Compilers
 				switch (match.Value.Type)
 				{
 					case LexemType.End:
-						throw new ArgumentException("unfinished characters class");
+						throw CreateException("unfinished characters class", iterator.Position);
 
 					case LexemType.ClassEnd:
 						return ranges;
@@ -219,7 +232,7 @@ namespace Mure.Compilers
 					switch (match.Value.Type)
 					{
 						case LexemType.End:
-							throw new ArgumentException("unfinished characters class");
+							throw CreateException("unfinished characters class", iterator.Position);
 
 						case LexemType.Escape:
 							end = match.Value.Replacement;
@@ -244,7 +257,7 @@ namespace Mure.Compilers
 			}
 		}
 
-		public static (int min, int max) MatchRepeat(IMatchIterator<Lexem> iterator, Match<Lexem> match)
+		private static (int min, int max) MatchRepeat(IMatchIterator<Lexem> iterator, Match<Lexem> match)
 		{
 			var buffer = new StringBuilder();
 
@@ -274,23 +287,15 @@ namespace Mure.Compilers
 				max = buffer.Length > 0 ? int.Parse(buffer.ToString()) : -1;
 
 				if (max >= 0 && max < min)
-					throw new ArgumentException("invalid repeat sequence");
+					throw CreateException("invalid repeat sequence", iterator.Position);
 			}
 			else
 				max = min;
 
 			if (match.Value.Type != LexemType.RepeatEnd)
-				throw new ArgumentException("expected end of repeat specifier");
+				throw CreateException("expected end of repeat specifier", iterator.Position);
 
 			return (min, max);
-		}
-
-		public static Match<Lexem> NextOrThrow(IMatchIterator<Lexem> iterator)
-		{
-			if (!iterator.TryMatchNext(out var match))
-				throw new ArgumentException("unrecognized character");
-
-			return match;
 		}
 	}
 
