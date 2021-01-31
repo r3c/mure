@@ -22,7 +22,7 @@ jobs:
         with:
           dotnet-version: ${{ matrix.dotnet.version }}
       - run: dotnet tool install --add-source https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json -g dotnet-format
-      - run: dotnet-format Mure.sln
+      - run: dotnet-format --check Mure.sln
 
   build:
     name: Build and test code (.NET v${{ matrix.dotnet.version }})
