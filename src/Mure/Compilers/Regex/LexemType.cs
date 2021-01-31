@@ -18,7 +18,6 @@ namespace Mure.Compilers.Regex
 		RepeatEnd,
 		SequenceBegin,
 		SequenceEnd,
-		Special,
 		Wildcard,
 		ZeroOrMore,
 		ZeroOrOne

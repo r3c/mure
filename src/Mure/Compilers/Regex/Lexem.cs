@@ -1,20 +1,19 @@
-
 namespace Mure.Compilers.Regex
 {
 	readonly struct Lexem
 	{
-		public readonly char Special;
+		public readonly char Replacement;
 		public readonly LexemType Type;
 
-		public Lexem(LexemType type, char special)
+		public Lexem(LexemType type, char replacement)
 		{
-			Special = special;
+			Replacement = replacement;
 			Type = type;
 		}
 
 		public Lexem(LexemType type)
 		{
-			Special = default;
+			Replacement = default;
 			Type = type;
 		}
 	}

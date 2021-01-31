@@ -10,30 +10,30 @@ namespace Mure.Compilers
 {
 	static class RegexCompiler
 	{
-		public static readonly IMatcher<Lexem> Scanner;
+		public static readonly IMatcher<Lexem> Matcher;
 
 		static RegexCompiler()
 		{
 			var literal = new NonDeterministicState<Lexem>(new Lexem(LexemType.Literal));
 			var escape = new NonDeterministicState<Lexem>();
 
-			escape.ConnectTo('(', '(', new NonDeterministicState<Lexem>(new Lexem(LexemType.Special, '(')));
-			escape.ConnectTo(')', ')', new NonDeterministicState<Lexem>(new Lexem(LexemType.Special, ')')));
-			escape.ConnectTo('*', '*', new NonDeterministicState<Lexem>(new Lexem(LexemType.Special, '*')));
-			escape.ConnectTo('+', '+', new NonDeterministicState<Lexem>(new Lexem(LexemType.Special, '+')));
-			escape.ConnectTo('-', '-', new NonDeterministicState<Lexem>(new Lexem(LexemType.Special, '-')));
-			escape.ConnectTo('.', '.', new NonDeterministicState<Lexem>(new Lexem(LexemType.Special, '.')));
-			escape.ConnectTo('?', '?', new NonDeterministicState<Lexem>(new Lexem(LexemType.Special, '?')));
-			escape.ConnectTo('[', '[', new NonDeterministicState<Lexem>(new Lexem(LexemType.Special, '[')));
-			escape.ConnectTo(']', ']', new NonDeterministicState<Lexem>(new Lexem(LexemType.Special, ']')));
-			escape.ConnectTo('\\', '\\', new NonDeterministicState<Lexem>(new Lexem(LexemType.Special, '\\')));
-			escape.ConnectTo('^', '^', new NonDeterministicState<Lexem>(new Lexem(LexemType.Special, '^')));
-			escape.ConnectTo('{', '{', new NonDeterministicState<Lexem>(new Lexem(LexemType.Special, '{')));
-			escape.ConnectTo('|', '|', new NonDeterministicState<Lexem>(new Lexem(LexemType.Special, '|')));
-			escape.ConnectTo('}', '}', new NonDeterministicState<Lexem>(new Lexem(LexemType.Special, '}')));
-			escape.ConnectTo('n', 'n', new NonDeterministicState<Lexem>(new Lexem(LexemType.Special, '\n')));
-			escape.ConnectTo('r', 'r', new NonDeterministicState<Lexem>(new Lexem(LexemType.Special, '\r')));
-			escape.ConnectTo('t', 't', new NonDeterministicState<Lexem>(new Lexem(LexemType.Special, '\t')));
+			escape.ConnectTo('(', '(', new NonDeterministicState<Lexem>(new Lexem(LexemType.Escape, '(')));
+			escape.ConnectTo(')', ')', new NonDeterministicState<Lexem>(new Lexem(LexemType.Escape, ')')));
+			escape.ConnectTo('*', '*', new NonDeterministicState<Lexem>(new Lexem(LexemType.Escape, '*')));
+			escape.ConnectTo('+', '+', new NonDeterministicState<Lexem>(new Lexem(LexemType.Escape, '+')));
+			escape.ConnectTo('-', '-', new NonDeterministicState<Lexem>(new Lexem(LexemType.Escape, '-')));
+			escape.ConnectTo('.', '.', new NonDeterministicState<Lexem>(new Lexem(LexemType.Escape, '.')));
+			escape.ConnectTo('?', '?', new NonDeterministicState<Lexem>(new Lexem(LexemType.Escape, '?')));
+			escape.ConnectTo('[', '[', new NonDeterministicState<Lexem>(new Lexem(LexemType.Escape, '[')));
+			escape.ConnectTo(']', ']', new NonDeterministicState<Lexem>(new Lexem(LexemType.Escape, ']')));
+			escape.ConnectTo('\\', '\\', new NonDeterministicState<Lexem>(new Lexem(LexemType.Escape, '\\')));
+			escape.ConnectTo('^', '^', new NonDeterministicState<Lexem>(new Lexem(LexemType.Escape, '^')));
+			escape.ConnectTo('{', '{', new NonDeterministicState<Lexem>(new Lexem(LexemType.Escape, '{')));
+			escape.ConnectTo('|', '|', new NonDeterministicState<Lexem>(new Lexem(LexemType.Escape, '|')));
+			escape.ConnectTo('}', '}', new NonDeterministicState<Lexem>(new Lexem(LexemType.Escape, '}')));
+			escape.ConnectTo('n', 'n', new NonDeterministicState<Lexem>(new Lexem(LexemType.Escape, '\n')));
+			escape.ConnectTo('r', 'r', new NonDeterministicState<Lexem>(new Lexem(LexemType.Escape, '\r')));
+			escape.ConnectTo('t', 't', new NonDeterministicState<Lexem>(new Lexem(LexemType.Escape, '\t')));
 
 			var character = new NonDeterministicState<Lexem>();
 
@@ -62,10 +62,10 @@ namespace Mure.Compilers
 			character.ConnectTo('}', '}', new NonDeterministicState<Lexem>(new Lexem(LexemType.RepeatEnd)));
 			character.ConnectTo('~', char.MaxValue, literal);
 
-			Scanner = new AutomataMatcher<Lexem>(character.ConvertToDeterministic());
+			Matcher = new AutomataMatcher<Lexem>(character.ConvertToDeterministic());
 		}
 
-		public static Node MatchAlternative(IMatchIterator<Lexem> matcher, Match<Lexem> match, bool atTopLevel)
+		public static Node MatchAlternative(IMatchIterator<Lexem> iterator, Match<Lexem> match, bool atTopLevel)
 		{
 			var alernatives = new List<List<Node>>();
 			var sequence = new List<Node>();
@@ -80,7 +80,7 @@ namespace Mure.Compilers
 				switch (match.Value.Type)
 				{
 					case LexemType.Alternative:
-						match = NextOrThrow(matcher);
+						match = NextOrThrow(iterator);
 						sequence = new List<Node>();
 
 						alernatives.Add(sequence);
@@ -88,7 +88,7 @@ namespace Mure.Compilers
 						continue;
 
 					case LexemType.ClassBegin:
-						node = Node.CreateCharacter(MatchClass(matcher, NextOrThrow(matcher)));
+						node = Node.CreateCharacter(MatchClass(iterator, NextOrThrow(iterator)));
 
 						break;
 
@@ -98,8 +98,13 @@ namespace Mure.Compilers
 
 						throw new ArgumentException("unfinished sequence");
 
+					case LexemType.Escape:
+						node = Node.CreateCharacter(match.Value.Replacement);
+
+						break;
+
 					case LexemType.SequenceBegin:
-						node = MatchAlternative(matcher, NextOrThrow(matcher), false);
+						node = MatchAlternative(iterator, NextOrThrow(iterator), false);
 
 						break;
 
@@ -108,11 +113,6 @@ namespace Mure.Compilers
 							return Node.CreateAlternative(alernatives);
 
 						node = Node.CreateCharacter(match.Capture[0]);
-
-						break;
-
-					case LexemType.Special:
-						node = Node.CreateCharacter(match.Value.Special);
 
 						break;
 
@@ -127,7 +127,7 @@ namespace Mure.Compilers
 						break;
 				}
 
-				match = NextOrThrow(matcher);
+				match = NextOrThrow(iterator);
 
 				// Match repeat specifier if any
 				int max;
@@ -141,7 +141,7 @@ namespace Mure.Compilers
 						break;
 
 					case LexemType.RepeatBegin:
-						(min, max) = MatchRepeat(matcher, NextOrThrow(matcher));
+						(min, max) = MatchRepeat(iterator, NextOrThrow(iterator));
 
 						break;
 
@@ -161,13 +161,13 @@ namespace Mure.Compilers
 						continue;
 				}
 
-				match = NextOrThrow(matcher);
+				match = NextOrThrow(iterator);
 
 				sequence.Add(Node.CreateRepeat(node, min, max));
 			}
 		}
 
-		public static IReadOnlyList<NodeRange> MatchClass(IMatchIterator<Lexem> matcher, Match<Lexem> match)
+		public static IReadOnlyList<NodeRange> MatchClass(IMatchIterator<Lexem> iterator, Match<Lexem> match)
 		{
 			if (match.Value.Type == LexemType.Negate)
 				throw new NotImplementedException("negated character classes are not supported yet");
@@ -179,7 +179,7 @@ namespace Mure.Compilers
 			{
 				ranges.Add(new NodeRange(match.Capture[0], match.Capture[0]));
 
-				match = NextOrThrow(matcher);
+				match = NextOrThrow(iterator);
 			}
 
 			while (true)
@@ -197,8 +197,8 @@ namespace Mure.Compilers
 					case LexemType.ClassEnd:
 						return ranges;
 
-					case LexemType.Special:
-						begin = match.Value.Special;
+					case LexemType.Escape:
+						begin = match.Value.Replacement;
 
 						break;
 
@@ -208,21 +208,21 @@ namespace Mure.Compilers
 						break;
 				}
 
-				match = NextOrThrow(matcher);
+				match = NextOrThrow(iterator);
 
 				// If next lexem defines a range (e.g. "a-z"), read next one to
 				// get end character for this range before registering it
 				if (match.Value.Type == LexemType.Range)
 				{
-					match = NextOrThrow(matcher);
+					match = NextOrThrow(iterator);
 
 					switch (match.Value.Type)
 					{
 						case LexemType.End:
 							throw new ArgumentException("unfinished characters class");
 
-						case LexemType.Special:
-							end = match.Value.Special;
+						case LexemType.Escape:
+							end = match.Value.Replacement;
 
 							break;
 
@@ -233,7 +233,7 @@ namespace Mure.Compilers
 
 					}
 
-					match = NextOrThrow(matcher);
+					match = NextOrThrow(iterator);
 				}
 
 				// Otherwise register transition from a single character
@@ -244,7 +244,7 @@ namespace Mure.Compilers
 			}
 		}
 
-		public static (int min, int max) MatchRepeat(IMatchIterator<Lexem> matcher, Match<Lexem> match)
+		public static (int min, int max) MatchRepeat(IMatchIterator<Lexem> iterator, Match<Lexem> match)
 		{
 			var buffer = new StringBuilder();
 
@@ -252,7 +252,7 @@ namespace Mure.Compilers
 			{
 				buffer.Append(match.Capture[0]);
 
-				match = NextOrThrow(matcher);
+				match = NextOrThrow(iterator);
 			}
 
 			int max;
@@ -262,13 +262,13 @@ namespace Mure.Compilers
 			{
 				buffer.Clear();
 
-				match = NextOrThrow(matcher);
+				match = NextOrThrow(iterator);
 
 				while (match.Value.Type == LexemType.Digit)
 				{
 					buffer.Append(match.Capture[0]);
 
-					match = NextOrThrow(matcher);
+					match = NextOrThrow(iterator);
 				}
 
 				max = buffer.Length > 0 ? int.Parse(buffer.ToString()) : -1;
@@ -285,9 +285,9 @@ namespace Mure.Compilers
 			return (min, max);
 		}
 
-		public static Match<Lexem> NextOrThrow(IMatchIterator<Lexem> matcher)
+		public static Match<Lexem> NextOrThrow(IMatchIterator<Lexem> iterator)
 		{
-			if (!matcher.TryMatchNext(out var match))
+			if (!iterator.TryMatchNext(out var match))
 				throw new ArgumentException("unrecognized character");
 
 			return match;
@@ -316,8 +316,8 @@ namespace Mure.Compilers
 
 			using (var reader = new StringReader(pattern))
 			{
-				var matcher = RegexCompiler.Scanner.Open(reader);
-				var node = RegexCompiler.MatchAlternative(matcher, RegexCompiler.NextOrThrow(matcher), true);
+				var iterator = RegexCompiler.Matcher.Open(reader);
+				var node = RegexCompiler.MatchAlternative(iterator, RegexCompiler.NextOrThrow(iterator), true);
 				var state = node.ConvertToState(start);
 
 				state.EpsilonTo(new NonDeterministicState<TValue>(value));
