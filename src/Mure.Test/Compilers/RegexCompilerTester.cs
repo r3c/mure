@@ -199,7 +199,7 @@ namespace Mure.Test.Compilers
 
 		private static void CompileAndAssert(string pattern, string subject, string capture)
 		{
-			var scanner = Matcher.CreateFromRegex(new[]
+			var matcher = Matcher.CreateFromRegex(new[]
 			{
 				(pattern, true)
 			});
@@ -207,9 +207,9 @@ namespace Mure.Test.Compilers
 			using (var reader = new StringReader(subject))
 			{
 				var expected = capture != null;
-				var matcher = scanner.Open(reader);
+				var iterator = matcher.Open(reader);
 
-				Assert.That(matcher.TryMatchNext(out var match), Is.EqualTo(expected));
+				Assert.That(iterator.TryMatchNext(out var match), Is.EqualTo(expected));
 				Assert.That(match.Capture, Is.EqualTo(capture));
 				Assert.That(match.Value, Is.EqualTo(expected));
 			}
