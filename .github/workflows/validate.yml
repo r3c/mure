@@ -1,7 +1,6 @@
 name: validate
 
 on:
-  - pull_request
   - push
 
 jobs:
@@ -25,7 +24,8 @@ jobs:
       - run: dotnet-format --check src/Mure.sln
 
   build:
-    name: Build and test code (.NET v${{ matrix.dotnet.version }})
+    name: Build solution (.NET v${{ matrix.dotnet.version }})
+    needs: check
     runs-on: ubuntu-latest
     env:
       DOTNET_CLI_TELEMETRY_OPTOUT: true
@@ -42,4 +42,23 @@ jobs:
           dotnet-version: ${{ matrix.dotnet.version }}
       - run: dotnet restore src/Mure.sln
       - run: dotnet build src/Mure.sln
+
+  test:
+    name: Run tests (.NET v${{ matrix.dotnet.version }})
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+      DOTNET_NOLOGO: true
+    strategy:
+      matrix:
+        dotnet: # https://dotnetcli.blob.core.windows.net/dotnet/release-metadata/releases-index.json
+          - version: "5.0"
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: ${{ matrix.dotnet.version }}
+      - run: dotnet restore src/Mure.sln
       - run: dotnet test src/Mure.Test
