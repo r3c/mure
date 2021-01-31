@@ -1,8 +1,8 @@
 
 namespace Mure
 {
-	public interface IMatcher<TValue>
-	{
-		bool TryMatch(out Match<TValue> match);
-	}
+    public interface IMatcher<TValue>
+    {
+        bool TryMatchNext(out Match<TValue> match);
+    }
 }

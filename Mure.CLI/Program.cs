@@ -8,14 +8,14 @@ namespace Mure.CLI
 	{
 		static void Main(string[] args)
 		{
-			var scanner = ScannerFactory.CreateRegex(new[]
+			var scanner = Scanner.CreateFromRegex(new[]
 			{
 				("ab*c", true)
 			});
 
 			var matcher = scanner.Scan(Console.In);
 
-			while (matcher.TryMatch(out var match))
+			while (matcher.TryMatchNext(out var match))
 				Console.WriteLine($"{match.Capture}: {match.Value}");
 		}
 	}

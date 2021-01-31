@@ -112,7 +112,7 @@ namespace Mure.Test.Scanners
 			{
 				var matcher = scanner.Scan(reader);
 
-				Assert.That(matcher.TryMatch(out var match), Is.EqualTo(success));
+				Assert.That(matcher.TryMatchNext(out var match), Is.EqualTo(success));
 				Assert.That(match.Capture, Is.EqualTo(expectedCapture));
 				Assert.That(match.Value, Is.EqualTo(expectedValue));
 			}

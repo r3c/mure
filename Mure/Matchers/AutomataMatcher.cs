@@ -21,7 +21,7 @@ namespace Mure.Matchers
 			_start = start;
 		}
 
-		public bool TryMatch(out Match<TValue> match)
+		public bool TryMatchNext(out Match<TValue> match)
 		{
 			var bestLength = 0;
 			var bestValue = default(TValue);
