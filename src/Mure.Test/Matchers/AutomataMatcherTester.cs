@@ -1,14 +1,11 @@
-using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using Mure.Matchers.Automata;
-using Mure.Scanners;
+using Mure.Matchers;
+using Mure.MatchIterators.Automata;
 using NUnit.Framework;
 
 namespace Mure.Test.Scanners
 {
-	public class AutomataScannerTester
+	public class AutomataMatcherTester
 	{
 		[TestCase("a", false, default, default)]
 		[TestCase("aa", false, default, default)]
@@ -22,9 +19,9 @@ namespace Mure.Test.Scanners
 		[TestCase("c", false, default, default)]
 		public void ConnectToRange(string pattern, bool success, string expectedCapture, int expectedValue)
 		{
-			var q0 = new NFAState<int>();
-			var q1 = new NFAState<int>();
-			var q2 = new NFAState<int>(17);
+			var q0 = new NonDeterministicState<int>();
+			var q1 = new NonDeterministicState<int>();
+			var q2 = new NonDeterministicState<int>(17);
 
 			q0.ConnectTo('a', 'b', q0);
 			q0.ConnectTo('a', 'a', q1);
@@ -56,11 +53,11 @@ namespace Mure.Test.Scanners
 		[TestCase("df", true, "df", 42)]
 		public void ConnectToOverlaps(string pattern, bool success, string expectedCapture, int expectedValue)
 		{
-			var q0 = new NFAState<int>();
-			var q1 = new NFAState<int>();
-			var q2 = new NFAState<int>();
-			var q3 = new NFAState<int>(17);
-			var q4 = new NFAState<int>(42);
+			var q0 = new NonDeterministicState<int>();
+			var q1 = new NonDeterministicState<int>();
+			var q2 = new NonDeterministicState<int>();
+			var q3 = new NonDeterministicState<int>(17);
+			var q4 = new NonDeterministicState<int>(42);
 
 			q0.ConnectTo('a', 'b', q0);
 			q0.ConnectTo('a', 'c', q1);
@@ -80,9 +77,9 @@ namespace Mure.Test.Scanners
 		[TestCase("bb", true, "b", 17)]
 		public void EpsilonTo(string pattern, bool success, string expectedCapture, int expectedValue)
 		{
-			var q0 = new NFAState<int>();
-			var q1 = new NFAState<int>();
-			var q2 = new NFAState<int>(17);
+			var q0 = new NonDeterministicState<int>();
+			var q1 = new NonDeterministicState<int>();
+			var q2 = new NonDeterministicState<int>(17);
 
 			q0.EpsilonTo(q1);
 			q0.ConnectTo('a', 'a', q0);
@@ -94,9 +91,9 @@ namespace Mure.Test.Scanners
 		[Test]
 		public void EpsilonToValue()
 		{
-			var q0 = new NFAState<int>();
-			var q1 = new NFAState<int>();
-			var q2 = new NFAState<int>(22);
+			var q0 = new NonDeterministicState<int>();
+			var q1 = new NonDeterministicState<int>();
+			var q2 = new NonDeterministicState<int>(22);
 
 			q0.ConnectTo('a', 'a', q1);
 			q1.EpsilonTo(q2);
@@ -104,13 +101,13 @@ namespace Mure.Test.Scanners
 			ConvertAndMatch(q0, "a", true, "a", 22);
 		}
 
-		private static void ConvertAndMatch<TValue>(NFAState<TValue> start, string pattern, bool success, string expectedCapture, TValue? expectedValue) where TValue : struct
+		private static void ConvertAndMatch<TValue>(NonDeterministicState<TValue> start, string pattern, bool success, string expectedCapture, TValue? expectedValue) where TValue : struct
 		{
-			var scanner = new AutomataScanner<TValue>(start.ConvertToDFA());
+			var scanner = new AutomataMatcher<TValue>(start.ConvertToDeterministic());
 
 			using (var reader = new StringReader(pattern))
 			{
-				var matcher = scanner.Scan(reader);
+				var matcher = scanner.Open(reader);
 
 				Assert.That(matcher.TryMatchNext(out var match), Is.EqualTo(success));
 				Assert.That(match.Capture, Is.EqualTo(expectedCapture));

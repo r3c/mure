@@ -2,46 +2,46 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Mure.Matchers.Automata
+namespace Mure.MatchIterators.Automata
 {
-	class NFAState<TValue>
+	class NonDeterministicState<TValue>
 	{
-		private IEnumerable<Branch<NFAState<TValue>>> AllBranches => GetAllStates().SelectMany(e => e._branches);
+		private IEnumerable<Branch<NonDeterministicState<TValue>>> AllBranches => GetAllStates().SelectMany(e => e._branches);
 		private IEnumerable<TValue> AllValues => GetAllStates().Where(e => e._hasValue).Select(e => e._value);
 
-		private readonly List<Branch<NFAState<TValue>>> _branches = new List<Branch<NFAState<TValue>>>();
-		private readonly List<NFAState<TValue>> _epsilons = new List<NFAState<TValue>>();
+		private readonly List<Branch<NonDeterministicState<TValue>>> _branches = new List<Branch<NonDeterministicState<TValue>>>();
+		private readonly List<NonDeterministicState<TValue>> _epsilons = new List<NonDeterministicState<TValue>>();
 		private readonly bool _hasValue;
 		private readonly TValue _value;
 
-		public NFAState(TValue value)
+		public NonDeterministicState(TValue value)
 		{
 			_hasValue = true;
 			_value = value;
 		}
 
-		public NFAState()
+		public NonDeterministicState()
 		{
 			_hasValue = false;
 			_value = default;
 		}
 
-		public DFAState<TValue> ConvertToDFA()
+		public DeterministicState<TValue> ConvertToDeterministic()
 		{
 			return GetOrConvertState(new[] { this }, new List<Equivalence>());
 		}
 
-		public void ConnectTo(int begin, int end, NFAState<TValue> target)
+		public void ConnectTo(int begin, int end, NonDeterministicState<TValue> target)
 		{
-			_branches.Add(new Branch<NFAState<TValue>>(begin, end, target));
+			_branches.Add(new Branch<NonDeterministicState<TValue>>(begin, end, target));
 		}
 
-		public void EpsilonTo(NFAState<TValue> target)
+		public void EpsilonTo(NonDeterministicState<TValue> target)
 		{
 			_epsilons.Add(target);
 		}
 
-		private IEnumerable<NFAState<TValue>> GetAllStates()
+		private IEnumerable<NonDeterministicState<TValue>> GetAllStates()
 		{
 			var self = new[] { this };
 
@@ -51,7 +51,7 @@ namespace Mure.Matchers.Automata
 		/// <Summary>
 		/// https://www.geeksforgeeks.org/theory-of-computation-conversion-from-nfa-to-dfa/
 		/// </Summary>
-		private static void ConnectToStates(DFAState<TValue> result, IReadOnlyList<NFAState<TValue>> states, List<Equivalence> equivalences)
+		private static void ConnectToStates(DeterministicState<TValue> result, IReadOnlyList<NonDeterministicState<TValue>> states, List<Equivalence> equivalences)
 		{
 			var branches = states
 				.SelectMany(n => n.AllBranches)
@@ -61,7 +61,7 @@ namespace Mure.Matchers.Automata
 			for (var i = 0; i < branches.Count;)
 			{
 				var branch = branches[i];
-				NFAState<TValue>[] targets;
+				NonDeterministicState<TValue>[] targets;
 				int end;
 
 				// No next branch or no overlap between current branch and next one
@@ -87,7 +87,7 @@ namespace Mure.Matchers.Automata
 						end = next.Begin - 1;
 
 						// Align starting range with the one from next branch for next iteration
-						branches[i] = new Branch<NFAState<TValue>>(next.Begin, branch.End, branch.Value);
+						branches[i] = new Branch<NonDeterministicState<TValue>>(next.Begin, branch.End, branch.Value);
 					}
 
 					// Current branch shares starting range with next one(s)
@@ -121,35 +121,36 @@ namespace Mure.Matchers.Automata
 
 							// Otherwise shift its starting range after the ending range of current selection
 							else
-								branches[last] = new Branch<NFAState<TValue>>(end + 1, branches[last].End, branches[last].Value);
+								branches[last] = new Branch<NonDeterministicState<TValue>>(end + 1, branches[last].End, branches[last].Value);
 						}
 					}
 				}
 
-				// Recursively convert target states to DFA state and connect current one to it
+				// Recursively convert target states to deterministic and connect current one to it
 				result.ConnectTo(branch.Begin, end, GetOrConvertState(targets, equivalences));
 			}
 		}
 
 		/// <Summary>
-		/// Create new DFA state equivalent to given set of input NFA states.
+		/// Create new deterministic state equivalent to given set of input
+		/// non-deterministic ones.
 		/// </Summary>
-		private static DFAState<TValue> CreateState(IEnumerable<NFAState<TValue>> states)
+		private static DeterministicState<TValue> CreateState(IEnumerable<NonDeterministicState<TValue>> states)
 		{
 			var values = states.SelectMany(n => n.AllValues).ToArray();
 
 			if (values.Length > 1)
 				throw new InvalidOperationException($"transition collision between multiple values: {string.Join(", ", values)}");
 
-			return values.Length > 0 ? new DFAState<TValue>(values[0]) : new DFAState<TValue>();
+			return values.Length > 0 ? new DeterministicState<TValue>(values[0]) : new DeterministicState<TValue>();
 		}
 
 		/// <Summary>
-		/// Find DFA state matching the exact set of input NFA states in
-		/// currently saved states, if any, or start conversion of a new one
-		/// otherwise.
+		/// Find deterministic state matching the exact set of input
+		/// non-deterministic states in currently saved states, if any, or
+		/// start conversion of a new one otherwise.
 		/// </Summary>
-		private static DFAState<TValue> GetOrConvertState(IReadOnlyList<NFAState<TValue>> states, List<Equivalence> equivalences)
+		private static DeterministicState<TValue> GetOrConvertState(IReadOnlyList<NonDeterministicState<TValue>> states, List<Equivalence> equivalences)
 		{
 			var index = equivalences.FindIndex(state => state.Sources.Count == states.Count() && state.Sources.All(source => states.Any(n => object.ReferenceEquals(n, source))));
 
@@ -169,13 +170,13 @@ namespace Mure.Matchers.Automata
 
 		private struct Equivalence
 		{
-			public readonly DFAState<TValue> Target;
-			public readonly IReadOnlyList<NFAState<TValue>> Sources;
+			public readonly IReadOnlyList<NonDeterministicState<TValue>> Sources;
+			public readonly DeterministicState<TValue> Target;
 
-			public Equivalence(IReadOnlyList<NFAState<TValue>> sources, DFAState<TValue> target)
+			public Equivalence(IReadOnlyList<NonDeterministicState<TValue>> sources, DeterministicState<TValue> target)
 			{
-				Target = target;
 				Sources = sources;
+				Target = target;
 			}
 		}
 	}

@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using Mure.Matchers.Automata;
+using Mure.MatchIterators.Automata;
 
 namespace Mure.Compilers.Regex
 {
@@ -54,13 +54,13 @@ namespace Mure.Compilers.Regex
 		}
 
 		/// <Summary>
-		/// Convert compiled regular expression node into graph of NFA states
-		/// connected to given parent state and return final state of produced
-		/// graph.
+		/// Convert compiled regular expression node into graph of non-deterministic
+		/// states connected to given parent state and return final state of
+		/// produced graph.
 		/// </Summary>
-		public NFAState<TValue> ConvertToNFA<TValue>(NFAState<TValue> parent)
+		public NonDeterministicState<TValue> ConvertToState<TValue>(NonDeterministicState<TValue> parent)
 		{
-			NFAState<TValue> next;
+			NonDeterministicState<TValue> next;
 
 			switch (Type)
 			{
@@ -69,17 +69,17 @@ namespace Mure.Compilers.Regex
 					// [parent] ---- [child2] ---> [next]
 					//           \-- [child3] --/
 
-					next = new NFAState<TValue>();
+					next = new NonDeterministicState<TValue>();
 
 					foreach (var child in Children)
-						child.ConvertToNFA(parent).EpsilonTo(next);
+						child.ConvertToState(parent).EpsilonTo(next);
 
 					break;
 
 				case NodeType.Character:
 					// [parent] --{begin, end}--> [next]
 
-					next = new NFAState<TValue>();
+					next = new NonDeterministicState<TValue>();
 
 					foreach (var range in Ranges)
 						parent.ConnectTo(range.Begin, range.End, next);
@@ -91,11 +91,11 @@ namespace Mure.Compilers.Regex
 					// [parent] - [child] * min ----------------> [next]
 					//                           \-- [child] --/ * infinite
 
-					// Convert NFA until lower bound is reached
+					// Convert until lower bound is reached
 					for (var i = 0; i < RepeatMin; ++i)
-						parent = Children[0].ConvertToNFA(parent);
+						parent = Children[0].ConvertToState(parent);
 
-					next = new NFAState<TValue>();
+					next = new NonDeterministicState<TValue>();
 
 					parent.EpsilonTo(next);
 
@@ -104,15 +104,15 @@ namespace Mure.Compilers.Regex
 					{
 						for (var i = 0; i < RepeatMax - RepeatMin; ++i)
 						{
-							parent = Children[0].ConvertToNFA(parent);
+							parent = Children[0].ConvertToState(parent);
 							parent.EpsilonTo(next);
 						}
 					}
 
-					// Unbounded repeat sequence, loop converted NFA over itself
+					// Unbounded repeat sequence, loop converted state over itself
 					else
 					{
-						var loop = Children[0].ConvertToNFA(parent);
+						var loop = Children[0].ConvertToState(parent);
 
 						loop.EpsilonTo(parent);
 						loop.EpsilonTo(next);
@@ -126,7 +126,7 @@ namespace Mure.Compilers.Regex
 					next = parent;
 
 					foreach (var child in Children)
-						next = child.ConvertToNFA(next);
+						next = child.ConvertToState(next);
 
 					break;
 
