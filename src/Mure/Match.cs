@@ -1,4 +1,3 @@
-
 namespace Mure
 {
 	public readonly struct Match<TValue>

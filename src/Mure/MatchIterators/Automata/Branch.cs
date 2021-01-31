@@ -1,4 +1,4 @@
-namespace Mure
+namespace Mure.MatchIterators.Automata
 {
 	readonly struct Branch<T>
 	{

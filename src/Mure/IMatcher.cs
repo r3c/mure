@@ -1,8 +1,9 @@
+using System.IO;
 
 namespace Mure
 {
 	public interface IMatcher<TValue>
 	{
-		bool TryMatchNext(out Match<TValue> match);
+		IMatchIterator<TValue> Open(TextReader reader);
 	}
 }

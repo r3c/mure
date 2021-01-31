@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace Mure.CLI
 {
@@ -8,14 +6,14 @@ namespace Mure.CLI
 	{
 		static void Main(string[] args)
 		{
-			var scanner = Scanner.CreateFromRegex(new[]
+			var matcher = Matcher.CreateFromRegex(new[]
 			{
 				("ab*c", true)
 			});
 
-			var matcher = scanner.Scan(Console.In);
+			var iterator = matcher.Open(Console.In);
 
-			while (matcher.TryMatchNext(out var match))
+			while (iterator.TryMatchNext(out var match))
 				Console.WriteLine($"{match.Capture}: {match.Value}");
 		}
 	}

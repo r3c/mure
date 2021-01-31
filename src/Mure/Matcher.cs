@@ -3,9 +3,9 @@ using Mure.Compilers;
 
 namespace Mure
 {
-	public static class Scanner
+	public static class Matcher
 	{
-		public static IScanner<TValue> CreateFromRegex<TValue>(IEnumerable<(string, TValue)> patterns)
+		public static IMatcher<TValue> CreateFromRegex<TValue>(IEnumerable<(string, TValue)> patterns)
 		{
 			var compiler = new RegexCompiler<TValue>();
 

@@ -3,69 +3,69 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using Mure.Compilers.Regex;
-using Mure.Matchers.Automata;
-using Mure.Scanners;
+using Mure.Matchers;
+using Mure.MatchIterators.Automata;
 
 namespace Mure.Compilers
 {
 	static class RegexCompiler
 	{
-		public static readonly IScanner<Lexem> Scanner;
+		public static readonly IMatcher<Lexem> Scanner;
 
 		static RegexCompiler()
 		{
-			var literal = new NFAState<Lexem>(new Lexem(LexemType.Literal));
-			var escape = new NFAState<Lexem>();
+			var literal = new NonDeterministicState<Lexem>(new Lexem(LexemType.Literal));
+			var escape = new NonDeterministicState<Lexem>();
 
-			escape.ConnectTo('(', '(', new NFAState<Lexem>(new Lexem(LexemType.Special, '(')));
-			escape.ConnectTo(')', ')', new NFAState<Lexem>(new Lexem(LexemType.Special, ')')));
-			escape.ConnectTo('*', '*', new NFAState<Lexem>(new Lexem(LexemType.Special, '*')));
-			escape.ConnectTo('+', '+', new NFAState<Lexem>(new Lexem(LexemType.Special, '+')));
-			escape.ConnectTo('-', '-', new NFAState<Lexem>(new Lexem(LexemType.Special, '-')));
-			escape.ConnectTo('.', '.', new NFAState<Lexem>(new Lexem(LexemType.Special, '.')));
-			escape.ConnectTo('?', '?', new NFAState<Lexem>(new Lexem(LexemType.Special, '?')));
-			escape.ConnectTo('[', '[', new NFAState<Lexem>(new Lexem(LexemType.Special, '[')));
-			escape.ConnectTo(']', ']', new NFAState<Lexem>(new Lexem(LexemType.Special, ']')));
-			escape.ConnectTo('\\', '\\', new NFAState<Lexem>(new Lexem(LexemType.Special, '\\')));
-			escape.ConnectTo('^', '^', new NFAState<Lexem>(new Lexem(LexemType.Special, '^')));
-			escape.ConnectTo('{', '{', new NFAState<Lexem>(new Lexem(LexemType.Special, '{')));
-			escape.ConnectTo('|', '|', new NFAState<Lexem>(new Lexem(LexemType.Special, '|')));
-			escape.ConnectTo('}', '}', new NFAState<Lexem>(new Lexem(LexemType.Special, '}')));
-			escape.ConnectTo('n', 'n', new NFAState<Lexem>(new Lexem(LexemType.Special, '\n')));
-			escape.ConnectTo('r', 'r', new NFAState<Lexem>(new Lexem(LexemType.Special, '\r')));
-			escape.ConnectTo('t', 't', new NFAState<Lexem>(new Lexem(LexemType.Special, '\t')));
+			escape.ConnectTo('(', '(', new NonDeterministicState<Lexem>(new Lexem(LexemType.Special, '(')));
+			escape.ConnectTo(')', ')', new NonDeterministicState<Lexem>(new Lexem(LexemType.Special, ')')));
+			escape.ConnectTo('*', '*', new NonDeterministicState<Lexem>(new Lexem(LexemType.Special, '*')));
+			escape.ConnectTo('+', '+', new NonDeterministicState<Lexem>(new Lexem(LexemType.Special, '+')));
+			escape.ConnectTo('-', '-', new NonDeterministicState<Lexem>(new Lexem(LexemType.Special, '-')));
+			escape.ConnectTo('.', '.', new NonDeterministicState<Lexem>(new Lexem(LexemType.Special, '.')));
+			escape.ConnectTo('?', '?', new NonDeterministicState<Lexem>(new Lexem(LexemType.Special, '?')));
+			escape.ConnectTo('[', '[', new NonDeterministicState<Lexem>(new Lexem(LexemType.Special, '[')));
+			escape.ConnectTo(']', ']', new NonDeterministicState<Lexem>(new Lexem(LexemType.Special, ']')));
+			escape.ConnectTo('\\', '\\', new NonDeterministicState<Lexem>(new Lexem(LexemType.Special, '\\')));
+			escape.ConnectTo('^', '^', new NonDeterministicState<Lexem>(new Lexem(LexemType.Special, '^')));
+			escape.ConnectTo('{', '{', new NonDeterministicState<Lexem>(new Lexem(LexemType.Special, '{')));
+			escape.ConnectTo('|', '|', new NonDeterministicState<Lexem>(new Lexem(LexemType.Special, '|')));
+			escape.ConnectTo('}', '}', new NonDeterministicState<Lexem>(new Lexem(LexemType.Special, '}')));
+			escape.ConnectTo('n', 'n', new NonDeterministicState<Lexem>(new Lexem(LexemType.Special, '\n')));
+			escape.ConnectTo('r', 'r', new NonDeterministicState<Lexem>(new Lexem(LexemType.Special, '\r')));
+			escape.ConnectTo('t', 't', new NonDeterministicState<Lexem>(new Lexem(LexemType.Special, '\t')));
 
-			var character = new NFAState<Lexem>();
+			var character = new NonDeterministicState<Lexem>();
 
-			character.ConnectTo(-1, -1, new NFAState<Lexem>(new Lexem(LexemType.End)));
+			character.ConnectTo(-1, -1, new NonDeterministicState<Lexem>(new Lexem(LexemType.End)));
 			character.ConnectTo(char.MinValue, ' ', literal);
 			character.ConnectTo('!', '\'', literal);
-			character.ConnectTo('(', '(', new NFAState<Lexem>(new Lexem(LexemType.SequenceBegin)));
-			character.ConnectTo(')', ')', new NFAState<Lexem>(new Lexem(LexemType.SequenceEnd)));
-			character.ConnectTo('*', '*', new NFAState<Lexem>(new Lexem(LexemType.ZeroOrMore)));
-			character.ConnectTo('+', '+', new NFAState<Lexem>(new Lexem(LexemType.OneOrMore)));
-			character.ConnectTo(',', ',', new NFAState<Lexem>(new Lexem(LexemType.Comma)));
-			character.ConnectTo('-', '-', new NFAState<Lexem>(new Lexem(LexemType.Range)));
-			character.ConnectTo('.', '.', new NFAState<Lexem>(new Lexem(LexemType.Wildcard)));
+			character.ConnectTo('(', '(', new NonDeterministicState<Lexem>(new Lexem(LexemType.SequenceBegin)));
+			character.ConnectTo(')', ')', new NonDeterministicState<Lexem>(new Lexem(LexemType.SequenceEnd)));
+			character.ConnectTo('*', '*', new NonDeterministicState<Lexem>(new Lexem(LexemType.ZeroOrMore)));
+			character.ConnectTo('+', '+', new NonDeterministicState<Lexem>(new Lexem(LexemType.OneOrMore)));
+			character.ConnectTo(',', ',', new NonDeterministicState<Lexem>(new Lexem(LexemType.Comma)));
+			character.ConnectTo('-', '-', new NonDeterministicState<Lexem>(new Lexem(LexemType.Range)));
+			character.ConnectTo('.', '.', new NonDeterministicState<Lexem>(new Lexem(LexemType.Wildcard)));
 			character.ConnectTo('/', '/', literal);
-			character.ConnectTo('0', '9', new NFAState<Lexem>(new Lexem(LexemType.Digit)));
+			character.ConnectTo('0', '9', new NonDeterministicState<Lexem>(new Lexem(LexemType.Digit)));
 			character.ConnectTo(':', '>', literal);
-			character.ConnectTo('?', '?', new NFAState<Lexem>(new Lexem(LexemType.ZeroOrOne)));
+			character.ConnectTo('?', '?', new NonDeterministicState<Lexem>(new Lexem(LexemType.ZeroOrOne)));
 			character.ConnectTo('@', 'Z', literal);
-			character.ConnectTo('[', '[', new NFAState<Lexem>(new Lexem(LexemType.ClassBegin)));
+			character.ConnectTo('[', '[', new NonDeterministicState<Lexem>(new Lexem(LexemType.ClassBegin)));
 			character.ConnectTo('\\', '\\', escape);
-			character.ConnectTo(']', ']', new NFAState<Lexem>(new Lexem(LexemType.ClassEnd)));
-			character.ConnectTo('^', '^', new NFAState<Lexem>(new Lexem(LexemType.Negate)));
+			character.ConnectTo(']', ']', new NonDeterministicState<Lexem>(new Lexem(LexemType.ClassEnd)));
+			character.ConnectTo('^', '^', new NonDeterministicState<Lexem>(new Lexem(LexemType.Negate)));
 			character.ConnectTo('_', 'z', literal);
-			character.ConnectTo('{', '{', new NFAState<Lexem>(new Lexem(LexemType.RepeatBegin)));
-			character.ConnectTo('|', '|', new NFAState<Lexem>(new Lexem(LexemType.Alternative)));
-			character.ConnectTo('}', '}', new NFAState<Lexem>(new Lexem(LexemType.RepeatEnd)));
+			character.ConnectTo('{', '{', new NonDeterministicState<Lexem>(new Lexem(LexemType.RepeatBegin)));
+			character.ConnectTo('|', '|', new NonDeterministicState<Lexem>(new Lexem(LexemType.Alternative)));
+			character.ConnectTo('}', '}', new NonDeterministicState<Lexem>(new Lexem(LexemType.RepeatEnd)));
 			character.ConnectTo('~', char.MaxValue, literal);
 
-			Scanner = new AutomataScanner<Lexem>(character.ConvertToDFA());
+			Scanner = new AutomataMatcher<Lexem>(character.ConvertToDeterministic());
 		}
 
-		public static Node MatchAlternative(IMatcher<Lexem> matcher, Match<Lexem> match, bool atTopLevel)
+		public static Node MatchAlternative(IMatchIterator<Lexem> matcher, Match<Lexem> match, bool atTopLevel)
 		{
 			var alernatives = new List<List<Node>>();
 			var sequence = new List<Node>();
@@ -167,7 +167,7 @@ namespace Mure.Compilers
 			}
 		}
 
-		public static IReadOnlyList<NodeRange> MatchClass(IMatcher<Lexem> matcher, Match<Lexem> match)
+		public static IReadOnlyList<NodeRange> MatchClass(IMatchIterator<Lexem> matcher, Match<Lexem> match)
 		{
 			if (match.Value.Type == LexemType.Negate)
 				throw new NotImplementedException("negated character classes are not supported yet");
@@ -244,7 +244,7 @@ namespace Mure.Compilers
 			}
 		}
 
-		public static (int min, int max) MatchRepeat(IMatcher<Lexem> matcher, Match<Lexem> match)
+		public static (int min, int max) MatchRepeat(IMatchIterator<Lexem> matcher, Match<Lexem> match)
 		{
 			var buffer = new StringBuilder();
 
@@ -285,7 +285,7 @@ namespace Mure.Compilers
 			return (min, max);
 		}
 
-		public static Match<Lexem> NextOrThrow(IMatcher<Lexem> matcher)
+		public static Match<Lexem> NextOrThrow(IMatchIterator<Lexem> matcher)
 		{
 			if (!matcher.TryMatchNext(out var match))
 				throw new ArgumentException("unrecognized character");
@@ -296,31 +296,31 @@ namespace Mure.Compilers
 
 	class RegexCompiler<TValue> : ICompiler<IEnumerable<(string, TValue)>, TValue>
 	{
-		public IScanner<TValue> Compile(IEnumerable<(string, TValue)> input)
+		public IMatcher<TValue> Compile(IEnumerable<(string, TValue)> input)
 		{
-			var state = new NFAState<TValue>();
+			var state = new NonDeterministicState<TValue>();
 
 			foreach (var search in input)
 				state.EpsilonTo(CompilePattern(search.Item1, search.Item2));
 
-			return new AutomataScanner<TValue>(state.ConvertToDFA());
+			return new AutomataMatcher<TValue>(state.ConvertToDeterministic());
 		}
 
 		/// <Summary>
-		/// Compile regular expression pattern into graph of NFA states leading
-		/// to given value.
+		/// Compile regular expression pattern into graph of non-deterministic
+		/// states leading to given value.
 		/// </Summary>
-		private static NFAState<TValue> CompilePattern(string pattern, TValue value)
+		private static NonDeterministicState<TValue> CompilePattern(string pattern, TValue value)
 		{
-			var start = new NFAState<TValue>();
+			var start = new NonDeterministicState<TValue>();
 
 			using (var reader = new StringReader(pattern))
 			{
-				var matcher = RegexCompiler.Scanner.Scan(reader);
+				var matcher = RegexCompiler.Scanner.Open(reader);
 				var node = RegexCompiler.MatchAlternative(matcher, RegexCompiler.NextOrThrow(matcher), true);
-				var state = node.ConvertToNFA(start);
+				var state = node.ConvertToState(start);
 
-				state.EpsilonTo(new NFAState<TValue>(value));
+				state.EpsilonTo(new NonDeterministicState<TValue>(value));
 			}
 
 			return start;
