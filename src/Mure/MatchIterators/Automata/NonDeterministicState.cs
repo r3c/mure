@@ -38,14 +38,13 @@ namespace Mure.MatchIterators.Automata
 
 		public void EpsilonTo(NonDeterministicState<TValue> target)
 		{
-			_epsilons.Add(target);
+			if (!ReferenceEquals(target, this))
+				_epsilons.Add(target);
 		}
 
 		private IEnumerable<NonDeterministicState<TValue>> GetAllStates()
 		{
-			var self = new[] { this };
-
-			return _epsilons.Except(self).SelectMany(e => e.GetAllStates()).Concat(self).Distinct();
+			return _epsilons.SelectMany(e => e.GetAllStates()).Concat(new[] { this }).Distinct();
 		}
 
 		/// <Summary>
@@ -152,7 +151,7 @@ namespace Mure.MatchIterators.Automata
 		/// </Summary>
 		private static DeterministicState<TValue> GetOrConvertState(IReadOnlyList<NonDeterministicState<TValue>> states, List<Equivalence> equivalences)
 		{
-			var index = equivalences.FindIndex(state => state.Sources.Count == states.Count() && state.Sources.All(source => states.Any(n => object.ReferenceEquals(n, source))));
+			var index = equivalences.FindIndex(state => state.Sources.Count == states.Count() && state.Sources.All(source => states.Any(n => ReferenceEquals(n, source))));
 
 			// Match from previous conversion was found: return it unchanged
 			if (index >= 0)
