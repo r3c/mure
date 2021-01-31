@@ -1,6 +1,6 @@
 
- namespace Mure.Compilers.Regex
- {
+namespace Mure.Compilers.Regex
+{
 	readonly struct NodeRange
 	{
 		public readonly char Begin;
@@ -12,4 +12,4 @@
 			End = end;
 		}
 	}
- }
+}
