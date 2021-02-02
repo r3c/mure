@@ -7,19 +7,20 @@ namespace Mure.MatchIterators
 {
 	class AutomataMatchIterator<TValue> : IMatchIterator<TValue>
 	{
-		public int Position { get; private set; } = 0;
+		public int Position => _offset - _buffer.Count;
 
 		private readonly List<int> _buffer;
 		private readonly TextReader _reader;
 		private readonly DeterministicState<TValue> _start;
 
+		private int _offset;
+
 		public AutomataMatchIterator(DeterministicState<TValue> start, TextReader reader)
 		{
 			_buffer = new List<int>();
+			_offset = 0;
 			_reader = reader;
 			_start = start;
-
-			Position = 0;
 		}
 
 		public bool TryMatchNext(out Match<TValue> match)
@@ -37,7 +38,7 @@ namespace Mure.MatchIterators
 				{
 					_buffer.Add(_reader.Read());
 
-					++Position;
+					++_offset;
 				}
 
 				// Valid transition exists when following character from current state

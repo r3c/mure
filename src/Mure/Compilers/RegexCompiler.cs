@@ -14,7 +14,6 @@ namespace Mure.Compilers
 
 		static RegexCompiler()
 		{
-			var literal = new NonDeterministicState<Lexem>(new Lexem(LexemType.Literal));
 			var escape = new NonDeterministicState<Lexem>();
 
 			escape.ConnectTo('(', '(', new NonDeterministicState<Lexem>(new Lexem(LexemType.Escape, '(')));
@@ -36,6 +35,7 @@ namespace Mure.Compilers
 			escape.ConnectTo('t', 't', new NonDeterministicState<Lexem>(new Lexem(LexemType.Escape, '\t')));
 
 			var character = new NonDeterministicState<Lexem>();
+			var literal = new NonDeterministicState<Lexem>(new Lexem(LexemType.Literal));
 
 			character.ConnectTo(-1, -1, new NonDeterministicState<Lexem>(new Lexem(LexemType.End)));
 			character.ConnectTo(char.MinValue, ' ', literal);

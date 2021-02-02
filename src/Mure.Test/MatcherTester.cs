@@ -6,12 +6,12 @@ namespace Mure.Test
 {
 	class MatcherTester
 	{
-		[TestCase("[a", "unfinished characters class at position 4")]
-		[TestCase("a{1", "expected end of repeat specifier at position 5")]
-		[TestCase("a{a", "expected end of repeat specifier at position 4")]
-		[TestCase("a{2,1}", "invalid repeat sequence at position 7")]
-		[TestCase("a{1,1,1}", "expected end of repeat specifier at position 7")]
-		[TestCase("\\i", "unrecognized character at position 2")]
+		[TestCase("[a", "unfinished characters class at position 3")]
+		[TestCase("a{1", "expected end of repeat specifier at position 4")]
+		[TestCase("a{a", "expected end of repeat specifier at position 3")]
+		[TestCase("a{2,1}", "invalid repeat sequence at position 6")]
+		[TestCase("a{1,1,1}", "expected end of repeat specifier at position 6")]
+		[TestCase("\\i", "unrecognized character at position 0")]
 		public void CreateFromRegex_DetectSyntaxError(string pattern, string message)
 		{
 			var exception = Assert.Throws<ArgumentException>(() => Matcher.CreateFromRegex(new[]
