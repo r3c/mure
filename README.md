@@ -7,16 +7,45 @@ Mure: MUlti-valued Regular Expressions
 Overview
 --------
 
-Mure is a regular expression engine able to bind several pattern/value pairs
-and return the value associated to matched pattern when applied. This allows
-forward-only text parsing while mapping each matched sequence to corresponding
-value, which is a efficient solution for tokenization tasks e.g. when writing
-lexers.
+Mure is a text stream matching engine with support for a subset of regular
+expressions, able to bind several patterns to a corresponding value and return
+the one value associated to matched pattern. This allows forward-only text
+parsing while mapping each matched sequence to corresponding value, which is a
+efficient solution for tokenization tasks e.g. when writing lexers.
 
 Usage
 -----
 
 There is no user documentation available yet, sorry!
+
+Here is a simple code sample:
+
+```csharp
+var matcher = Matcher.CreateFromRegex(new[]
+{
+    ("[0-9]+", LexemType.Number),
+    ("\\+", LexemType.Plus),
+    ("-", LexemType.Minus)
+});
+
+using (var reader = new StringReader("27+32-4"))
+{
+    var iterator = matcher.Open(reader);
+
+    while (iterator.TryMatchNext(out var match))
+        Console.WriteLine($"Matched {match.Value}: {match.Capture}");
+}
+```
+
+Running this code will print to standard output:
+
+```
+Matched Number: 27
+Matched Plus: +
+Matched Number: 32
+Matched Minus: -
+Matched Number: 4
+```
 
 Licence
 -------
