@@ -2,17 +2,33 @@ using System;
 using System.IO;
 using NUnit.Framework;
 
-namespace Mure.Test.Compilers
+namespace Mure.Test
 {
-	class RegexCompilerTester
+	class MatcherTester
 	{
+		[TestCase("[a", "unfinished characters class at position 4")]
+		[TestCase("a{1", "expected end of repeat specifier at position 5")]
+		[TestCase("a{a", "expected end of repeat specifier at position 4")]
+		[TestCase("a{2,1}", "invalid repeat sequence at position 7")]
+		[TestCase("a{1,1,1}", "expected end of repeat specifier at position 7")]
+		[TestCase("\\i", "unrecognized character at position 2")]
+		public void CreateFromRegex_DetectSyntaxError(string pattern, string message)
+		{
+			var exception = Assert.Throws<ArgumentException>(() => Matcher.CreateFromRegex(new[]
+			{
+				(pattern, true)
+			}));
+
+			Assert.That(exception.Message, Is.EqualTo(message));
+		}
+
 		[TestCase("a|b", "", null)]
 		[TestCase("a|b", "a", "a")]
 		[TestCase("a|b", "b", "b")]
 		[TestCase("a|b", "ab", "a")]
 		[TestCase("a|b", "ba", "b")]
 		[TestCase("a|b", "c", null)]
-		public void Alternate(string pattern, string subject, string capture)
+		public void CreateFromRegex_MatchAlternate(string pattern, string subject, string capture)
 		{
 			CompileAndAssert(pattern, subject, capture);
 		}
@@ -62,25 +78,15 @@ namespace Mure.Test.Compilers
 		[TestCase("[ab]ab", "bbab", null)]
 		[TestCase("[ab]ab", "bbba", null)]
 		[TestCase("[ab]ab", "bbbb", null)]
-		public void Class(string pattern, string subject, string capture)
+
+		[TestCase("[a-c]1[d-f]2", "a1d2y", "a1d2")]
+		[TestCase("[a-c]1[d-f]2", "b1e2y", "b1e2")]
+		[TestCase("[a-c]1[d-f]2", "c1f2y", "c1f2")]
+		[TestCase("[a-c]1[d-f]2", "a1b2", null)]
+		[TestCase("[a-c]1[d-f]2", "d1e2", null)]
+		public void CreateFromRegex_MatchClass(string pattern, string subject, string capture)
 		{
 			CompileAndAssert(pattern, subject, capture);
-		}
-
-		[TestCase("[a", 4)]
-		[TestCase("a{1", 5)]
-		[TestCase("a{a", 4)]
-		[TestCase("a{2,1}", 7)]
-		[TestCase("a{1,1,1}", 7)]
-		[TestCase("\\i", 2)]
-		public void DetectSyntaxError(string pattern, int position)
-		{
-			var exception = Assert.Throws<ArgumentException>(() => Matcher.CreateFromRegex(new[]
-			{
-				(pattern, true)
-			}));
-
-			Assert.That(exception.Message, Does.EndWith($"at position {position}"));
 		}
 
 		[TestCase("\\(", "(", "(")]
@@ -100,7 +106,7 @@ namespace Mure.Test.Compilers
 		[TestCase("\\n", "\n", "\n")]
 		[TestCase("\\r", "\r", "\r")]
 		[TestCase("\\t", "\t", "\t")]
-		public void Escape(string pattern, string subject, string capture)
+		public void CreateFromRegex_MatchEscape(string pattern, string subject, string capture)
 		{
 			CompileAndAssert(pattern, subject, capture);
 		}
@@ -111,7 +117,7 @@ namespace Mure.Test.Compilers
 		[TestCase("ab", "aba", "ab")]
 		[TestCase("ab", "abb", "ab")]
 		[TestCase("ab", "bb", null)]
-		public void Literal(string pattern, string subject, string capture)
+		public void CreateFromRegex_MatchLiteral(string pattern, string subject, string capture)
 		{
 			CompileAndAssert(pattern, subject, capture);
 		}
@@ -122,7 +128,7 @@ namespace Mure.Test.Compilers
 		[TestCase("a+", "aaaaa", "aaaaa")]
 		[TestCase("a+", "aaab", "aaa")]
 		[TestCase("a+", "b", null)]
-		public void OneOrMore(string pattern, string subject, string capture)
+		public void CreateFromRegex_MatchOneOrMore(string pattern, string subject, string capture)
 		{
 			CompileAndAssert(pattern, subject, capture);
 		}
@@ -143,7 +149,7 @@ namespace Mure.Test.Compilers
 		[TestCase("a{1,}", "", null)]
 		[TestCase("a{1,}", "a", "a")]
 		[TestCase("a{1,}", "aa", "aa")]
-		public void Repeat(string pattern, string subject, string capture)
+		public void CreateFromRegex_MatchRepeat(string pattern, string subject, string capture)
 		{
 			CompileAndAssert(pattern, subject, capture);
 		}
@@ -165,14 +171,14 @@ namespace Mure.Test.Compilers
 		[TestCase("a(b|c)*d", "abd", "abd")]
 		[TestCase("a(b|c)*d", "acd", "acd")]
 		[TestCase("a(b|c)*d", "abccbd", "abccbd")]
-		public void Sequence(string pattern, string subject, string capture)
+		public void CreateFromRegex_MatchSequence(string pattern, string subject, string capture)
 		{
 			CompileAndAssert(pattern, subject, capture);
 		}
 
 		[TestCase(".", "a", "a")]
 		[TestCase(".", "b", "b")]
-		public void Wildcard(string pattern, string subject, string capture)
+		public void CreateFromRegex_MatchWildcard(string pattern, string subject, string capture)
 		{
 			CompileAndAssert(pattern, subject, capture);
 		}
@@ -183,7 +189,7 @@ namespace Mure.Test.Compilers
 		[TestCase("a*", "aaaaa", "aaaaa")]
 		[TestCase("a*", "aaab", "aaa")]
 		[TestCase("a*", "b", "")]
-		public void ZeroOrMore(string pattern, string subject, string capture)
+		public void CreateFromRegex_MatchZeroOrMore(string pattern, string subject, string capture)
 		{
 			CompileAndAssert(pattern, subject, capture);
 		}
@@ -192,7 +198,7 @@ namespace Mure.Test.Compilers
 		[TestCase("a?", "a", "a")]
 		[TestCase("a?", "aa", "a")]
 		[TestCase("a?", "b", "")]
-		public void ZeroOrOne(string pattern, string subject, string capture)
+		public void CreateFromRegex_MatchZeroOrOne(string pattern, string subject, string capture)
 		{
 			CompileAndAssert(pattern, subject, capture);
 		}
