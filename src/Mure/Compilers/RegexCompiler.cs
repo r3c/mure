@@ -38,8 +38,7 @@ namespace Mure.Compilers
 			var literal = new NonDeterministicState<Lexem>(new Lexem(LexemType.Literal));
 
 			character.ConnectTo(-1, -1, new NonDeterministicState<Lexem>(new Lexem(LexemType.End)));
-			character.ConnectTo(char.MinValue, ' ', literal);
-			character.ConnectTo('!', '\'', literal);
+			character.ConnectTo(char.MinValue, '\'', literal);
 			character.ConnectTo('(', '(', new NonDeterministicState<Lexem>(new Lexem(LexemType.SequenceBegin)));
 			character.ConnectTo(')', ')', new NonDeterministicState<Lexem>(new Lexem(LexemType.SequenceEnd)));
 			character.ConnectTo('*', '*', new NonDeterministicState<Lexem>(new Lexem(LexemType.ZeroOrMore)));
@@ -188,12 +187,15 @@ namespace Mure.Compilers
 
 		private static IReadOnlyList<NodeRange> MatchClass(IMatchIterator<Lexem> iterator, Match<Lexem> match)
 		{
-			if (match.Value.Type == LexemType.Negate)
-				throw new NotImplementedException("negated character classes are not supported yet");
-
 			var ranges = new List<NodeRange>();
 
-			// Allow first character of a class to be literal "end of class" character
+			// Allow first character of a class to be special "negate class" character
+			if (match.Value.Type == LexemType.Negate)
+			{
+				throw new NotImplementedException("negated character classes are not supported yet");
+			}
+
+			// Allow first (or post-negate) character of a class to be literal "end of class" character
 			if (match.Value.Type == LexemType.ClassEnd)
 			{
 				ranges.Add(new NodeRange(match.Capture[0], match.Capture[0]));
