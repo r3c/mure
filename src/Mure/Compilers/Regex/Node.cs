@@ -97,7 +97,7 @@ namespace Mure.Compilers.Regex
 					parent.EpsilonTo(next);
 
 					// Bounded repeat sequence, perform conversion (max - min) times
-					if (RepeatMax > 0)
+					if (RepeatMax >= 0)
 					{
 						for (var i = 0; i < RepeatMax - RepeatMin; ++i)
 						{
