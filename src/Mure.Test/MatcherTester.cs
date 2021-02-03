@@ -133,6 +133,8 @@ namespace Mure.Test
 			CompileAndAssert(pattern, subject, capture);
 		}
 
+		[TestCase("a{0}b", "b", "b")]
+		[TestCase("a{0}b", "ab", null)]
 		[TestCase("a{1}", "", null)]
 		[TestCase("a{1}", "a", "a")]
 		[TestCase("a{1}", "aa", "a")]
