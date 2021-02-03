@@ -67,10 +67,8 @@ namespace Mure.Compilers
 
 		public static Node MatchAlternative(IMatchIterator<Lexem> iterator, Match<Lexem> match, bool atTopLevel)
 		{
-			var alernatives = new List<List<Node>>();
-			var sequence = new List<Node>();
-
-			alernatives.Add(sequence);
+			var alernativeNodes = new List<Node>();
+			var sequenceNodes = new List<Node>();
 
 			while (true)
 			{
@@ -80,10 +78,10 @@ namespace Mure.Compilers
 				switch (match.Value.Type)
 				{
 					case LexemType.Alternative:
-						match = NextOrThrow(iterator);
-						sequence = new List<Node>();
+						alernativeNodes.Add(Node.CreateSequence(sequenceNodes));
 
-						alernatives.Add(sequence);
+						sequenceNodes = new List<Node>();
+						match = NextOrThrow(iterator);
 
 						continue;
 
@@ -94,7 +92,11 @@ namespace Mure.Compilers
 
 					case LexemType.End:
 						if (atTopLevel)
-							return Node.CreateAlternative(alernatives);
+						{
+							alernativeNodes.Add(Node.CreateSequence(sequenceNodes));
+
+							return Node.CreateAlternative(alernativeNodes);
+						}
 
 						throw CreateException("unfinished sequence", iterator.Position);
 
@@ -110,7 +112,11 @@ namespace Mure.Compilers
 
 					case LexemType.SequenceEnd:
 						if (!atTopLevel)
-							return Node.CreateAlternative(alernatives);
+						{
+							alernativeNodes.Add(Node.CreateSequence(sequenceNodes));
+
+							return Node.CreateAlternative(alernativeNodes);
+						}
 
 						node = Node.CreateCharacter(match.Capture[0]);
 
@@ -156,14 +162,14 @@ namespace Mure.Compilers
 						break;
 
 					default:
-						sequence.Add(node);
+						sequenceNodes.Add(node);
 
 						continue;
 				}
 
 				match = NextOrThrow(iterator);
 
-				sequence.Add(Node.CreateRepeat(node, min, max));
+				sequenceNodes.Add(Node.CreateRepeat(node, min, max));
 			}
 		}
 
