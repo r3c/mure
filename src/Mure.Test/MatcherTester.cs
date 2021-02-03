@@ -6,6 +6,98 @@ namespace Mure.Test
 {
 	class MatcherTester
 	{
+		[TestCase("[]]", "", null)]
+		[TestCase("[]]", "]", "]")]
+
+		[TestCase("[a]", "", null)]
+		[TestCase("[a]", "a", "a")]
+		[TestCase("[a]", "b", null)]
+
+		[TestCase("[ab]", "", null)]
+		[TestCase("[ab]", "a", "a")]
+		[TestCase("[ab]", "b", "b")]
+		[TestCase("[ab]", "c", null)]
+
+		[TestCase("[a-c]", "", null)]
+		[TestCase("[a-c]", "a", "a")]
+		[TestCase("[a-c]", "b", "b")]
+		[TestCase("[a-c]", "c", "c")]
+		[TestCase("[a-c]", "d", null)]
+
+		[TestCase("[ab]ab", "a", null)]
+		[TestCase("[ab]ab", "aa", null)]
+		[TestCase("[ab]ab", "aaa", null)]
+		[TestCase("[ab]ab", "aaaa", null)]
+		[TestCase("[ab]ab", "aaab", null)]
+		[TestCase("[ab]ab", "aab", "aab")]
+		[TestCase("[ab]ab", "aaba", "aab")]
+		[TestCase("[ab]ab", "aabb", "aab")]
+		[TestCase("[ab]ab", "ab", null)]
+		[TestCase("[ab]ab", "aba", null)]
+		[TestCase("[ab]ab", "abaa", null)]
+		[TestCase("[ab]ab", "abab", null)]
+		[TestCase("[ab]ab", "abbb", null)]
+		[TestCase("[ab]ab", "b", null)]
+		[TestCase("[ab]ab", "ba", null)]
+		[TestCase("[ab]ab", "baa", null)]
+		[TestCase("[ab]ab", "baaa", null)]
+		[TestCase("[ab]ab", "baab", null)]
+		[TestCase("[ab]ab", "bab", "bab")]
+		[TestCase("[ab]ab", "baba", "bab")]
+		[TestCase("[ab]ab", "babb", "bab")]
+		[TestCase("[ab]ab", "bb", null)]
+		[TestCase("[ab]ab", "bba", null)]
+		[TestCase("[ab]ab", "bbaa", null)]
+		[TestCase("[ab]ab", "bbab", null)]
+		[TestCase("[ab]ab", "bbba", null)]
+		[TestCase("[ab]ab", "bbbb", null)]
+
+		[TestCase("[a-c]1[d-f]2", "a1d2y", "a1d2")]
+		[TestCase("[a-c]1[d-f]2", "b1e2y", "b1e2")]
+		[TestCase("[a-c]1[d-f]2", "c1f2y", "c1f2")]
+		[TestCase("[a-c]1[d-f]2", "a1b2", null)]
+		[TestCase("[a-c]1[d-f]2", "d1e2", null)]
+		public void CreateFromGlob_MatchClass(string pattern, string subject, string capture)
+		{
+			CompileGlobAndAssert(pattern, subject, capture);
+		}
+
+		[TestCase("\\*", "*", "*")]
+		[TestCase("\\?", "?", "?")]
+		[TestCase("\\[", "[", "[")]
+		[TestCase("\\]", "]", "]")]
+		[TestCase("\\\\'", "\\'", "\\'")]
+		public void CreateFromGlob_MatchEscape(string pattern, string subject, string capture)
+		{
+			CompileGlobAndAssert(pattern, subject, capture);
+		}
+
+		[TestCase("", "", "")]
+		[TestCase("a", "a", "a")]
+		[TestCase("a", "b", null)]
+		[TestCase("abc", "abc", "abc")]
+		[TestCase("abc", "xabc", null)]
+		public void CreateFromGlob_MatchSequence(string pattern, string subject, string capture)
+		{
+			CompileGlobAndAssert(pattern, subject, capture);
+		}
+
+		[TestCase("?", "", null)]
+		[TestCase("?", "a", "a")]
+		[TestCase("?", "b", "b")]
+		public void CreateFromGlob_MatchWildcard(string pattern, string subject, string capture)
+		{
+			CompileGlobAndAssert(pattern, subject, capture);
+		}
+
+		[TestCase("*", "", "")]
+		[TestCase("*", "a", "a")]
+		[TestCase("*", "abc", "abc")]
+		public void CreateFromGlob_MatchZeroOrMore(string pattern, string subject, string capture)
+		{
+			CompileGlobAndAssert(pattern, subject, capture);
+		}
+
 		[TestCase("[a", "unfinished characters class at position 3")]
 		[TestCase("a{1", "expected end of repeat specifier at position 4")]
 		[TestCase("a{a", "expected end of repeat specifier at position 3")]
@@ -30,7 +122,7 @@ namespace Mure.Test
 		[TestCase("a|b", "c", null)]
 		public void CreateFromRegex_MatchAlternate(string pattern, string subject, string capture)
 		{
-			CompileAndAssert(pattern, subject, capture);
+			CompileRegexAndAssert(pattern, subject, capture);
 		}
 
 		[TestCase("[]]", "", null)]
@@ -86,7 +178,7 @@ namespace Mure.Test
 		[TestCase("[a-c]1[d-f]2", "d1e2", null)]
 		public void CreateFromRegex_MatchClass(string pattern, string subject, string capture)
 		{
-			CompileAndAssert(pattern, subject, capture);
+			CompileRegexAndAssert(pattern, subject, capture);
 		}
 
 		[TestCase("\\(", "(", "(")]
@@ -108,7 +200,7 @@ namespace Mure.Test
 		[TestCase("\\t", "\t", "\t")]
 		public void CreateFromRegex_MatchEscape(string pattern, string subject, string capture)
 		{
-			CompileAndAssert(pattern, subject, capture);
+			CompileRegexAndAssert(pattern, subject, capture);
 		}
 
 		[TestCase("()", "", "")]
@@ -146,7 +238,7 @@ namespace Mure.Test
 		[TestCase("(a|b)(c|d)", "cd", null)]
 		public void CreateFromRegex_MatchMixed(string pattern, string subject, string capture)
 		{
-			CompileAndAssert(pattern, subject, capture);
+			CompileRegexAndAssert(pattern, subject, capture);
 		}
 
 		[TestCase("a+", "", null)]
@@ -157,7 +249,7 @@ namespace Mure.Test
 		[TestCase("a+", "b", null)]
 		public void CreateFromRegex_MatchOneOrMore(string pattern, string subject, string capture)
 		{
-			CompileAndAssert(pattern, subject, capture);
+			CompileRegexAndAssert(pattern, subject, capture);
 		}
 
 		[TestCase("a{0}b", "b", "b")]
@@ -180,7 +272,7 @@ namespace Mure.Test
 		[TestCase("a{1,}", "aa", "aa")]
 		public void CreateFromRegex_MatchRepeat(string pattern, string subject, string capture)
 		{
-			CompileAndAssert(pattern, subject, capture);
+			CompileRegexAndAssert(pattern, subject, capture);
 		}
 
 		[TestCase("ab", "a", null)]
@@ -191,14 +283,14 @@ namespace Mure.Test
 		[TestCase("ab", "bb", null)]
 		public void CreateFromRegex_MatchSequence(string pattern, string subject, string capture)
 		{
-			CompileAndAssert(pattern, subject, capture);
+			CompileRegexAndAssert(pattern, subject, capture);
 		}
 
 		[TestCase(".", "a", "a")]
 		[TestCase(".", "b", "b")]
 		public void CreateFromRegex_MatchWildcard(string pattern, string subject, string capture)
 		{
-			CompileAndAssert(pattern, subject, capture);
+			CompileRegexAndAssert(pattern, subject, capture);
 		}
 
 		[TestCase("a*", "", "")]
@@ -209,7 +301,7 @@ namespace Mure.Test
 		[TestCase("a*", "b", "")]
 		public void CreateFromRegex_MatchZeroOrMore(string pattern, string subject, string capture)
 		{
-			CompileAndAssert(pattern, subject, capture);
+			CompileRegexAndAssert(pattern, subject, capture);
 		}
 
 		[TestCase("a?", "", "")]
@@ -218,16 +310,31 @@ namespace Mure.Test
 		[TestCase("a?", "b", "")]
 		public void CreateFromRegex_MatchZeroOrOne(string pattern, string subject, string capture)
 		{
-			CompileAndAssert(pattern, subject, capture);
+			CompileRegexAndAssert(pattern, subject, capture);
 		}
 
-		private static void CompileAndAssert(string pattern, string subject, string capture)
+		private static void CompileGlobAndAssert(string pattern, string subject, string capture)
+		{
+			var matcher = Matcher.CreateFromGlob(new[]
+			{
+				(pattern, true)
+			});
+
+			CompileAndAssert(matcher, subject, capture);
+		}
+
+		private static void CompileRegexAndAssert(string pattern, string subject, string capture)
 		{
 			var matcher = Matcher.CreateFromRegex(new[]
 			{
 				(pattern, true)
 			});
 
+			CompileAndAssert(matcher, subject, capture);
+		}
+
+		private static void CompileAndAssert(IMatcher<bool> matcher, string subject, string capture)
+		{
 			using (var reader = new StringReader(subject))
 			{
 				var expected = capture != null;
