@@ -111,13 +111,33 @@ namespace Mure.Test
 			CompileAndAssert(pattern, subject, capture);
 		}
 
-		[TestCase("ab", "a", null)]
-		[TestCase("ab", "aa", null)]
-		[TestCase("ab", "ab", "ab")]
-		[TestCase("ab", "aba", "ab")]
-		[TestCase("ab", "abb", "ab")]
-		[TestCase("ab", "bb", null)]
-		public void CreateFromRegex_MatchLiteral(string pattern, string subject, string capture)
+		[TestCase("()", "", "")]
+		[TestCase("(a)", "a", "a")]
+		[TestCase("a(b)c", "abc", "abc")]
+		[TestCase("a(bc)d", "abcd", "abcd")]
+		[TestCase("a(bc)?d", "ad", "ad")]
+		[TestCase("a(bc)?d", "abcd", "abcd")]
+		[TestCase("a(bc)?d", "abcbcd", null)]
+		[TestCase("a(bc)+d", "ad", null)]
+		[TestCase("a(bc)+d", "abcd", "abcd")]
+		[TestCase("a(bc)+d", "abcbcd", "abcbcd")]
+		[TestCase("a(bc)*d", "ad", "ad")]
+		[TestCase("a(bc)*d", "abcd", "abcd")]
+		[TestCase("a(bc)*d", "abcbcd", "abcbcd")]
+		[TestCase("a(b|c)*d", "ad", "ad")]
+		[TestCase("a(b|c)*d", "abd", "abd")]
+		[TestCase("a(b|c)*d", "acd", "acd")]
+		[TestCase("a(b|c)*d", "abccbd", "abccbd")]
+		[TestCase("a(b|c){1,2}d", "ad", null)]
+		[TestCase("a(b|c){1,2}d", "abd", "abd")]
+		[TestCase("a(b|c){1,2}d", "abcd", "abcd")]
+		[TestCase("a(b|c){1,2}d", "abbbd", null)]
+		[TestCase("[0-9]{0,2}(a|b){1,2}", "a", "a")]
+		[TestCase("[0-9]{0,2}(a|b){1,2}", "0ba", "0ba")]
+		[TestCase("[0-9]{0,2}(a|b){1,2}", "45a", "45a")]
+		[TestCase("[0-9]{0,2}(a|b){1,2}", "782bb", null)]
+		[TestCase("[0-9]{0,2}(a|b){1,2}", "72", null)]
+		public void CreateFromRegex_MatchMixed(string pattern, string subject, string capture)
 		{
 			CompileAndAssert(pattern, subject, capture);
 		}
@@ -156,23 +176,12 @@ namespace Mure.Test
 			CompileAndAssert(pattern, subject, capture);
 		}
 
-		[TestCase("()", "", "")]
-		[TestCase("(a)", "a", "a")]
-		[TestCase("a(b)c", "abc", "abc")]
-		[TestCase("a(bc)d", "abcd", "abcd")]
-		[TestCase("a(bc)?d", "ad", "ad")]
-		[TestCase("a(bc)?d", "abcd", "abcd")]
-		[TestCase("a(bc)?d", "abcbcd", null)]
-		[TestCase("a(bc)+d", "ad", null)]
-		[TestCase("a(bc)+d", "abcd", "abcd")]
-		[TestCase("a(bc)+d", "abcbcd", "abcbcd")]
-		[TestCase("a(bc)*d", "ad", "ad")]
-		[TestCase("a(bc)*d", "abcd", "abcd")]
-		[TestCase("a(bc)*d", "abcbcd", "abcbcd")]
-		[TestCase("a(b|c)*d", "ad", "ad")]
-		[TestCase("a(b|c)*d", "abd", "abd")]
-		[TestCase("a(b|c)*d", "acd", "acd")]
-		[TestCase("a(b|c)*d", "abccbd", "abccbd")]
+		[TestCase("ab", "a", null)]
+		[TestCase("ab", "aa", null)]
+		[TestCase("ab", "ab", "ab")]
+		[TestCase("ab", "aba", "ab")]
+		[TestCase("ab", "abb", "ab")]
+		[TestCase("ab", "bb", null)]
 		public void CreateFromRegex_MatchSequence(string pattern, string subject, string capture)
 		{
 			CompileAndAssert(pattern, subject, capture);
