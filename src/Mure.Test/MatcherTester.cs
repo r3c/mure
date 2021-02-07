@@ -137,6 +137,13 @@ namespace Mure.Test
 		[TestCase("[0-9]{0,2}(a|b){1,2}", "45a", "45a")]
 		[TestCase("[0-9]{0,2}(a|b){1,2}", "782bb", null)]
 		[TestCase("[0-9]{0,2}(a|b){1,2}", "72", null)]
+		[TestCase("a(b(c){3}d){2}e", "abcccdbcccde", "abcccdbcccde")]
+		[TestCase("(a|b)(c|d)", "ab", null)]
+		[TestCase("(a|b)(c|d)", "ac", "ac")]
+		[TestCase("(a|b)(c|d)", "ad", "ad")]
+		[TestCase("(a|b)(c|d)", "bc", "bc")]
+		[TestCase("(a|b)(c|d)", "bd", "bd")]
+		[TestCase("(a|b)(c|d)", "cd", null)]
 		public void CreateFromRegex_MatchMixed(string pattern, string subject, string capture)
 		{
 			CompileAndAssert(pattern, subject, capture);
