@@ -101,7 +101,7 @@ namespace Mure.Compilers
 			}
 		}
 
-		private static IReadOnlyList<NodeRange> MatchClass(IMatchIterator<Lexem> iterator, Match<Lexem> match)
+		private static Node MatchClass(IMatchIterator<Lexem> iterator, Match<Lexem> match)
 		{
 			var ranges = new List<NodeRange>();
 
@@ -132,7 +132,7 @@ namespace Mure.Compilers
 						throw CreateException("unfinished characters class", iterator.Position);
 
 					case LexemType.ClassEnd:
-						return ranges;
+						return Node.CreateCharacter(ranges);
 
 					case LexemType.Escape:
 						begin = match.Value.Replacement;
@@ -244,7 +244,7 @@ namespace Mure.Compilers
 						return (Node.CreateSequence(sequenceNodes), match);
 
 					case LexemType.ClassBegin:
-						node = Node.CreateCharacter(MatchClass(iterator, NextOrThrow(iterator)));
+						node = MatchClass(iterator, NextOrThrow(iterator));
 						nextMatch = NextOrThrow(iterator);
 
 						break;
