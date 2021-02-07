@@ -64,112 +64,11 @@ namespace Mure.Compilers
 			Matcher = new AutomataMatcher<Lexem>(character.ConvertToDeterministic());
 		}
 
-		public static Node MatchAlternative(IMatchIterator<Lexem> iterator, Match<Lexem> match, bool atTopLevel)
+		public static Node Match(IMatchIterator<Lexem> iterator)
 		{
-			var alernativeNodes = new List<Node>();
-			var sequenceNodes = new List<Node>();
+			var (node, _) = MatchAlternative(iterator, RegexCompiler.NextOrThrow(iterator), true);
 
-			while (true)
-			{
-				// Match literal character or character class
-				Node node;
-
-				switch (match.Value.Type)
-				{
-					case LexemType.Alternative:
-						alernativeNodes.Add(Node.CreateSequence(sequenceNodes));
-
-						sequenceNodes = new List<Node>();
-						match = NextOrThrow(iterator);
-
-						continue;
-
-					case LexemType.ClassBegin:
-						node = Node.CreateCharacter(MatchClass(iterator, NextOrThrow(iterator)));
-
-						break;
-
-					case LexemType.End:
-						if (atTopLevel)
-						{
-							alernativeNodes.Add(Node.CreateSequence(sequenceNodes));
-
-							return Node.CreateAlternative(alernativeNodes);
-						}
-
-						throw CreateException("unfinished sequence", iterator.Position);
-
-					case LexemType.Escape:
-						node = Node.CreateCharacter(match.Value.Replacement);
-
-						break;
-
-					case LexemType.SequenceBegin:
-						node = MatchAlternative(iterator, NextOrThrow(iterator), false);
-
-						break;
-
-					case LexemType.SequenceEnd:
-						if (!atTopLevel)
-						{
-							alernativeNodes.Add(Node.CreateSequence(sequenceNodes));
-
-							return Node.CreateAlternative(alernativeNodes);
-						}
-
-						node = Node.CreateCharacter(match.Capture[0]);
-
-						break;
-
-					case LexemType.Wildcard:
-						node = Node.CreateCharacter(new[] { new NodeRange(char.MinValue, char.MaxValue) });
-
-						break;
-
-					default:
-						node = Node.CreateCharacter(match.Capture[0]);
-
-						break;
-				}
-
-				match = NextOrThrow(iterator);
-
-				// Match repeat specifier if any
-				int max;
-				int min;
-
-				switch (match.Value.Type)
-				{
-					case LexemType.OneOrMore:
-						(min, max) = (1, -1);
-
-						break;
-
-					case LexemType.RepeatBegin:
-						(min, max) = MatchRepeat(iterator, NextOrThrow(iterator));
-
-						break;
-
-					case LexemType.ZeroOrMore:
-						(min, max) = (0, -1);
-
-						break;
-
-					case LexemType.ZeroOrOne:
-						(min, max) = (0, 1);
-
-						break;
-
-					default:
-						sequenceNodes.Add(node);
-
-						continue;
-				}
-
-				match = NextOrThrow(iterator);
-
-				sequenceNodes.Add(Node.CreateRepeat(node, min, max));
-			}
+			return node;
 		}
 
 		public static Match<Lexem> NextOrThrow(IMatchIterator<Lexem> iterator)
@@ -183,6 +82,23 @@ namespace Mure.Compilers
 		private static Exception CreateException(string message, int position)
 		{
 			return new ArgumentException($"{message} at position {position}");
+		}
+
+		private static (Node, Match<Lexem>) MatchAlternative(IMatchIterator<Lexem> iterator, Match<Lexem> match, bool atTopLevel)
+		{
+			var alternativeNodes = new List<Node>();
+
+			while (true)
+			{
+				var (sequenceNodes, nextMatch) = MatchSequence(iterator, match, atTopLevel);
+
+				alternativeNodes.Add(sequenceNodes);
+
+				if (nextMatch.Value.Type != LexemType.Alternative)
+					return (Node.CreateAlternative(alternativeNodes), nextMatch);
+
+				match = NextOrThrow(iterator);
+			}
 		}
 
 		private static IReadOnlyList<NodeRange> MatchClass(IMatchIterator<Lexem> iterator, Match<Lexem> match)
@@ -305,6 +221,110 @@ namespace Mure.Compilers
 
 			return (min, max);
 		}
+
+		public static (Node, Match<Lexem>) MatchSequence(IMatchIterator<Lexem> iterator, Match<Lexem> match, bool atTopLevel)
+		{
+			var sequenceNodes = new List<Node>();
+
+			while (true)
+			{
+				// Match literal character or character class
+				Match<Lexem> nextMatch;
+				Node node;
+
+				switch (match.Value.Type)
+				{
+					case LexemType.Alternative:
+						return (Node.CreateSequence(sequenceNodes), match);
+
+					case LexemType.End:
+						if (!atTopLevel)
+							throw CreateException("unfinished parenthesis", iterator.Position);
+
+						return (Node.CreateSequence(sequenceNodes), match);
+
+					case LexemType.ClassBegin:
+						node = Node.CreateCharacter(MatchClass(iterator, NextOrThrow(iterator)));
+						nextMatch = NextOrThrow(iterator);
+
+						break;
+
+					case LexemType.Escape:
+						node = Node.CreateCharacter(match.Value.Replacement);
+						nextMatch = NextOrThrow(iterator);
+
+						break;
+
+					case LexemType.SequenceBegin:
+						var (alternativeNode, alternativeNextMatch) = MatchAlternative(iterator, NextOrThrow(iterator), false);
+
+						node = alternativeNode;
+						nextMatch = alternativeNextMatch;
+
+						break;
+
+					case LexemType.SequenceEnd:
+						if (!atTopLevel)
+							return (Node.CreateSequence(sequenceNodes), NextOrThrow(iterator));
+
+						node = Node.CreateCharacter(match.Capture[0]);
+						nextMatch = NextOrThrow(iterator);
+
+						break;
+
+					case LexemType.Wildcard:
+						node = Node.CreateCharacter(new[] { new NodeRange(char.MinValue, char.MaxValue) });
+						nextMatch = NextOrThrow(iterator);
+
+						break;
+
+					default:
+						node = Node.CreateCharacter(match.Capture[0]);
+						nextMatch = NextOrThrow(iterator);
+
+						break;
+				}
+
+				// Match repeat specifier if any
+				int max;
+				int min;
+
+				switch (nextMatch.Value.Type)
+				{
+					case LexemType.OneOrMore:
+						(min, max) = (1, -1);
+						match = NextOrThrow(iterator);
+
+						break;
+
+					case LexemType.RepeatBegin:
+						(min, max) = MatchRepeat(iterator, NextOrThrow(iterator));
+						match = NextOrThrow(iterator);
+
+						break;
+
+					case LexemType.ZeroOrMore:
+						(min, max) = (0, -1);
+						match = NextOrThrow(iterator);
+
+						break;
+
+					case LexemType.ZeroOrOne:
+						(min, max) = (0, 1);
+						match = NextOrThrow(iterator);
+
+						break;
+
+					default:
+						(min, max) = (1, 1);
+						match = nextMatch;
+
+						break;
+				}
+
+				sequenceNodes.Add(Node.CreateRepeat(node, min, max));
+			}
+		}
 	}
 
 	class RegexCompiler<TValue> : ICompiler<IEnumerable<(string, TValue)>, TValue>
@@ -330,7 +350,7 @@ namespace Mure.Compilers
 			using (var reader = new StringReader(pattern))
 			{
 				var iterator = RegexCompiler.Matcher.Open(reader);
-				var node = RegexCompiler.MatchAlternative(iterator, RegexCompiler.NextOrThrow(iterator), true);
+				var node = RegexCompiler.Match(iterator);
 				var state = node.ConvertToState(start);
 
 				state.EpsilonTo(new NonDeterministicState<TValue>(value));

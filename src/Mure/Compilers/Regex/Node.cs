@@ -14,7 +14,7 @@ namespace Mure.Compilers.Regex
 
 		public static Node CreateAlternative(IReadOnlyList<Node> children)
 		{
-			return new Node(NodeType.Alternative, children, Array.Empty<NodeRange>(), 0, 0);
+			return children.Count == 1 ? children[0] : new Node(NodeType.Alternative, children, Array.Empty<NodeRange>(), 0, 0);
 		}
 
 		public static Node CreateCharacter(IReadOnlyList<NodeRange> ranges)
@@ -29,12 +29,12 @@ namespace Mure.Compilers.Regex
 
 		public static Node CreateRepeat(Node child, int min, int max)
 		{
-			return new Node(NodeType.Repeat, new[] { child }, Array.Empty<NodeRange>(), min, max);
+			return min == 1 && max == 1 ? child : new Node(NodeType.Repeat, new[] { child }, Array.Empty<NodeRange>(), min, max);
 		}
 
 		public static Node CreateSequence(IReadOnlyList<Node> children)
 		{
-			return new Node(NodeType.Sequence, children, Array.Empty<NodeRange>(), 0, 0);
+			return children.Count == 1 ? children[0] : new Node(NodeType.Sequence, children, Array.Empty<NodeRange>(), 0, 0);
 		}
 
 		private Node(NodeType type, IReadOnlyList<Node> children, IReadOnlyList<NodeRange> ranges, int repeatMin, int repeatMax)
