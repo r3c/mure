@@ -19,9 +19,10 @@ namespace Mure.Test.Scanners
 		[TestCase("c", false, default, default)]
 		public void ConnectToRange(string pattern, bool success, string expectedCapture, int expectedValue)
 		{
-			var q0 = NonDeterministicNode<int>.Create();
-			var q1 = q0.PushEmpty();
-			var q2 = q0.PushValue(17);
+			var automata = new NonDeterministicAutomata<int>();
+			var q0 = automata.PushEmpty();
+			var q1 = automata.PushEmpty();
+			var q2 = automata.PushValue(17);
 
 			q0.BranchTo('a', 'b', q0);
 			q0.BranchTo('a', 'a', q1);
@@ -53,11 +54,12 @@ namespace Mure.Test.Scanners
 		[TestCase("df", true, "df", 42)]
 		public void ConnectToOverlaps(string pattern, bool success, string expectedCapture, int expectedValue)
 		{
-			var q0 = NonDeterministicNode<int>.Create();
-			var q1 = q0.PushEmpty();
-			var q2 = q0.PushEmpty();
-			var q3 = q0.PushValue(17);
-			var q4 = q0.PushValue(42);
+			var automata = new NonDeterministicAutomata<int>();
+			var q0 = automata.PushEmpty();
+			var q1 = automata.PushEmpty();
+			var q2 = automata.PushEmpty();
+			var q3 = automata.PushValue(17);
+			var q4 = automata.PushValue(42);
 
 			q0.BranchTo('a', 'b', q0);
 			q0.BranchTo('a', 'c', q1);
@@ -77,9 +79,10 @@ namespace Mure.Test.Scanners
 		[TestCase("bb", true, "b", 17)]
 		public void EpsilonTo(string pattern, bool success, string expectedCapture, int expectedValue)
 		{
-			var q0 = NonDeterministicNode<int>.Create();
-			var q1 = q0.PushEmpty();
-			var q2 = q0.PushValue(17);
+			var automata = new NonDeterministicAutomata<int>();
+			var q0 = automata.PushEmpty();
+			var q1 = automata.PushEmpty();
+			var q2 = automata.PushValue(17);
 
 			q0.EpsilonTo(q1);
 			q0.BranchTo('a', 'a', q0);
@@ -91,9 +94,10 @@ namespace Mure.Test.Scanners
 		[Test]
 		public void EpsilonToValue()
 		{
-			var q0 = NonDeterministicNode<int>.Create();
-			var q1 = q0.PushEmpty();
-			var q2 = q0.PushValue(22);
+			var automata = new NonDeterministicAutomata<int>();
+			var q0 = automata.PushEmpty();
+			var q1 = automata.PushEmpty();
+			var q2 = automata.PushValue(22);
 
 			q0.BranchTo('a', 'a', q1);
 			q1.EpsilonTo(q2);
@@ -103,7 +107,7 @@ namespace Mure.Test.Scanners
 
 		private static void ConvertAndMatch<TValue>(NonDeterministicNode<TValue> node, string pattern, bool success, string expectedCapture, TValue? expectedValue) where TValue : struct
 		{
-			var scanner = new AutomataMatcher<TValue>(node.ToDeterministicNode());
+			var scanner = new AutomataMatcher<TValue>(node.ToDeterministic());
 
 			using (var reader = new StringReader(pattern))
 			{

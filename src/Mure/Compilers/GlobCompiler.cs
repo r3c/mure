@@ -15,33 +15,34 @@ namespace Mure.Compilers
 
 		static GlobCompiler()
 		{
-			var escape = NonDeterministicNode<Lexem>.Create();
+			var automata = new NonDeterministicAutomata<Lexem>();
+			var escape = automata.PushEmpty();
 
-			escape.BranchTo('*', '*', escape.PushValue(new Lexem(LexemType.Escape, '*')));
-			escape.BranchTo('?', '?', escape.PushValue(new Lexem(LexemType.Escape, '?')));
-			escape.BranchTo('[', '[', escape.PushValue(new Lexem(LexemType.Escape, '[')));
-			escape.BranchTo(']', ']', escape.PushValue(new Lexem(LexemType.Escape, ']')));
-			escape.BranchTo('\\', '\\', escape.PushValue(new Lexem(LexemType.Escape, '\\')));
+			escape.BranchTo('*', '*', automata.PushValue(new Lexem(LexemType.Escape, '*')));
+			escape.BranchTo('?', '?', automata.PushValue(new Lexem(LexemType.Escape, '?')));
+			escape.BranchTo('[', '[', automata.PushValue(new Lexem(LexemType.Escape, '[')));
+			escape.BranchTo(']', ']', automata.PushValue(new Lexem(LexemType.Escape, ']')));
+			escape.BranchTo('\\', '\\', automata.PushValue(new Lexem(LexemType.Escape, '\\')));
 
-			var character = escape.PushEmpty();
-			var literal = escape.PushValue(new Lexem(LexemType.Literal));
+			var character = automata.PushEmpty();
+			var literal = automata.PushValue(new Lexem(LexemType.Literal));
 
-			character.BranchTo(-1, -1, escape.PushValue(new Lexem(LexemType.End)));
+			character.BranchTo(-1, -1, automata.PushValue(new Lexem(LexemType.End)));
 			character.BranchTo(char.MinValue, ' ', literal);
-			character.BranchTo('!', '!', escape.PushValue(new Lexem(LexemType.Negate)));
+			character.BranchTo('!', '!', automata.PushValue(new Lexem(LexemType.Negate)));
 			character.BranchTo('"', ')', literal);
-			character.BranchTo('*', '*', escape.PushValue(new Lexem(LexemType.ZeroOrMore)));
+			character.BranchTo('*', '*', automata.PushValue(new Lexem(LexemType.ZeroOrMore)));
 			character.BranchTo('+', ',', literal);
-			character.BranchTo('-', '-', escape.PushValue(new Lexem(LexemType.Range)));
+			character.BranchTo('-', '-', automata.PushValue(new Lexem(LexemType.Range)));
 			character.BranchTo('.', '>', literal);
-			character.BranchTo('?', '?', escape.PushValue(new Lexem(LexemType.Wildcard)));
+			character.BranchTo('?', '?', automata.PushValue(new Lexem(LexemType.Wildcard)));
 			character.BranchTo('@', 'Z', literal);
-			character.BranchTo('[', '[', escape.PushValue(new Lexem(LexemType.ClassBegin)));
+			character.BranchTo('[', '[', automata.PushValue(new Lexem(LexemType.ClassBegin)));
 			character.BranchTo('\\', '\\', escape);
-			character.BranchTo(']', ']', escape.PushValue(new Lexem(LexemType.ClassEnd)));
+			character.BranchTo(']', ']', automata.PushValue(new Lexem(LexemType.ClassEnd)));
 			character.BranchTo('^', char.MaxValue, literal);
 
-			Matcher = new AutomataMatcher<Lexem>(character.ToDeterministicNode());
+			Matcher = new AutomataMatcher<Lexem>(character.ToDeterministic());
 		}
 
 		public static Node MatchSequence(IMatchIterator<Lexem> iterator, Match<Lexem> match, bool atTopLevel)
@@ -191,27 +192,28 @@ namespace Mure.Compilers
 	{
 		public IMatcher<TValue> Compile(IEnumerable<(string, TValue)> input)
 		{
-			var start = NonDeterministicNode<TValue>.Create();
+			var automata = new NonDeterministicAutomata<TValue>();
+			var start = automata.PushEmpty();
 
 			foreach (var search in input)
-				CompilePattern(start, search.Item1, search.Item2);
+				CompilePattern(automata, start, search.Item1, search.Item2);
 
-			return new AutomataMatcher<TValue>(start.ToDeterministicNode());
+			return new AutomataMatcher<TValue>(start.ToDeterministic());
 		}
 
 		/// <Summary>
 		/// Compile regular expression pattern into graph of non-deterministic
 		/// states leading to given value.
 		/// </Summary>
-		private static void CompilePattern(NonDeterministicNode<TValue> start, string pattern, TValue value)
+		private static void CompilePattern(NonDeterministicAutomata<TValue> automata, NonDeterministicNode<TValue> start, string pattern, TValue value)
 		{
 			using (var reader = new StringReader(pattern))
 			{
 				var iterator = GlobCompiler.Matcher.Open(reader);
 				var node = GlobCompiler.MatchSequence(iterator, GlobCompiler.NextOrThrow(iterator), true);
-				var leaf = node.ConnectTo(start);
+				var leaf = node.ConnectTo(automata, start);
 
-				leaf.EpsilonTo(start.PushValue(value));
+				leaf.EpsilonTo(automata.PushValue(value));
 			}
 		}
 	}

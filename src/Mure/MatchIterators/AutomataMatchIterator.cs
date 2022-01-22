@@ -12,17 +12,15 @@ namespace Mure.MatchIterators
 		private readonly DeterministicAutomata<TValue> _automata;
 		private readonly List<int> _buffer;
 		private readonly TextReader _reader;
-		private readonly int _start;
 
 		private int _offset;
 
-		public AutomataMatchIterator(DeterministicAutomata<TValue> automata, int start, TextReader reader)
+		public AutomataMatchIterator(DeterministicAutomata<TValue> automata, TextReader reader)
 		{
 			_automata = automata;
 			_buffer = new List<int>();
 			_offset = 0;
 			_reader = reader;
-			_start = start;
 		}
 
 		public bool TryMatchNext(out Match<TValue> match)
@@ -30,7 +28,7 @@ namespace Mure.MatchIterators
 			var bestLength = 0;
 			var bestValue = default(TValue);
 			var builder = new StringBuilder();
-			var current = _start;
+			var current = _automata.Start;
 			var index = 0;
 
 			while (true)
@@ -68,7 +66,7 @@ namespace Mure.MatchIterators
 				}
 
 				// No valid transition found but zero match is valid
-				else if (_automata.TryGetValue(_start, out var value))
+				else if (_automata.TryGetValue(_automata.Start, out var value))
 				{
 					match = new Match<TValue>(value, string.Empty);
 

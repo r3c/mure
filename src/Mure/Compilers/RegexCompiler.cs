@@ -14,54 +14,55 @@ namespace Mure.Compilers
 
 		static RegexCompiler()
 		{
-			var escape = NonDeterministicNode<Lexem>.Create();
+			var automata = new NonDeterministicAutomata<Lexem>();
+			var escape = automata.PushEmpty();
 
-			escape.BranchTo('(', '(', escape.PushValue(new Lexem(LexemType.Escape, '(')));
-			escape.BranchTo(')', ')', escape.PushValue(new Lexem(LexemType.Escape, ')')));
-			escape.BranchTo('*', '*', escape.PushValue(new Lexem(LexemType.Escape, '*')));
-			escape.BranchTo('+', '+', escape.PushValue(new Lexem(LexemType.Escape, '+')));
-			escape.BranchTo('-', '-', escape.PushValue(new Lexem(LexemType.Escape, '-')));
-			escape.BranchTo('.', '.', escape.PushValue(new Lexem(LexemType.Escape, '.')));
-			escape.BranchTo('?', '?', escape.PushValue(new Lexem(LexemType.Escape, '?')));
-			escape.BranchTo('[', '[', escape.PushValue(new Lexem(LexemType.Escape, '[')));
-			escape.BranchTo(']', ']', escape.PushValue(new Lexem(LexemType.Escape, ']')));
-			escape.BranchTo('\\', '\\', escape.PushValue(new Lexem(LexemType.Escape, '\\')));
-			escape.BranchTo('^', '^', escape.PushValue(new Lexem(LexemType.Escape, '^')));
-			escape.BranchTo('{', '{', escape.PushValue(new Lexem(LexemType.Escape, '{')));
-			escape.BranchTo('|', '|', escape.PushValue(new Lexem(LexemType.Escape, '|')));
-			escape.BranchTo('}', '}', escape.PushValue(new Lexem(LexemType.Escape, '}')));
-			escape.BranchTo('n', 'n', escape.PushValue(new Lexem(LexemType.Escape, '\n')));
-			escape.BranchTo('r', 'r', escape.PushValue(new Lexem(LexemType.Escape, '\r')));
-			escape.BranchTo('t', 't', escape.PushValue(new Lexem(LexemType.Escape, '\t')));
+			escape.BranchTo('(', '(', automata.PushValue(new Lexem(LexemType.Escape, '(')));
+			escape.BranchTo(')', ')', automata.PushValue(new Lexem(LexemType.Escape, ')')));
+			escape.BranchTo('*', '*', automata.PushValue(new Lexem(LexemType.Escape, '*')));
+			escape.BranchTo('+', '+', automata.PushValue(new Lexem(LexemType.Escape, '+')));
+			escape.BranchTo('-', '-', automata.PushValue(new Lexem(LexemType.Escape, '-')));
+			escape.BranchTo('.', '.', automata.PushValue(new Lexem(LexemType.Escape, '.')));
+			escape.BranchTo('?', '?', automata.PushValue(new Lexem(LexemType.Escape, '?')));
+			escape.BranchTo('[', '[', automata.PushValue(new Lexem(LexemType.Escape, '[')));
+			escape.BranchTo(']', ']', automata.PushValue(new Lexem(LexemType.Escape, ']')));
+			escape.BranchTo('\\', '\\', automata.PushValue(new Lexem(LexemType.Escape, '\\')));
+			escape.BranchTo('^', '^', automata.PushValue(new Lexem(LexemType.Escape, '^')));
+			escape.BranchTo('{', '{', automata.PushValue(new Lexem(LexemType.Escape, '{')));
+			escape.BranchTo('|', '|', automata.PushValue(new Lexem(LexemType.Escape, '|')));
+			escape.BranchTo('}', '}', automata.PushValue(new Lexem(LexemType.Escape, '}')));
+			escape.BranchTo('n', 'n', automata.PushValue(new Lexem(LexemType.Escape, '\n')));
+			escape.BranchTo('r', 'r', automata.PushValue(new Lexem(LexemType.Escape, '\r')));
+			escape.BranchTo('t', 't', automata.PushValue(new Lexem(LexemType.Escape, '\t')));
 
-			var character = escape.PushEmpty();
-			var literal = escape.PushValue(new Lexem(LexemType.Literal));
+			var character = automata.PushEmpty();
+			var literal = automata.PushValue(new Lexem(LexemType.Literal));
 
-			character.BranchTo(-1, -1, escape.PushValue(new Lexem(LexemType.End)));
+			character.BranchTo(-1, -1, automata.PushValue(new Lexem(LexemType.End)));
 			character.BranchTo(char.MinValue, '\'', literal);
-			character.BranchTo('(', '(', escape.PushValue(new Lexem(LexemType.SequenceBegin)));
-			character.BranchTo(')', ')', escape.PushValue(new Lexem(LexemType.SequenceEnd)));
-			character.BranchTo('*', '*', escape.PushValue(new Lexem(LexemType.ZeroOrMore)));
-			character.BranchTo('+', '+', escape.PushValue(new Lexem(LexemType.OneOrMore)));
-			character.BranchTo(',', ',', escape.PushValue(new Lexem(LexemType.Comma)));
-			character.BranchTo('-', '-', escape.PushValue(new Lexem(LexemType.Range)));
-			character.BranchTo('.', '.', escape.PushValue(new Lexem(LexemType.Wildcard)));
+			character.BranchTo('(', '(', automata.PushValue(new Lexem(LexemType.SequenceBegin)));
+			character.BranchTo(')', ')', automata.PushValue(new Lexem(LexemType.SequenceEnd)));
+			character.BranchTo('*', '*', automata.PushValue(new Lexem(LexemType.ZeroOrMore)));
+			character.BranchTo('+', '+', automata.PushValue(new Lexem(LexemType.OneOrMore)));
+			character.BranchTo(',', ',', automata.PushValue(new Lexem(LexemType.Comma)));
+			character.BranchTo('-', '-', automata.PushValue(new Lexem(LexemType.Range)));
+			character.BranchTo('.', '.', automata.PushValue(new Lexem(LexemType.Wildcard)));
 			character.BranchTo('/', '/', literal);
-			character.BranchTo('0', '9', escape.PushValue(new Lexem(LexemType.Digit)));
+			character.BranchTo('0', '9', automata.PushValue(new Lexem(LexemType.Digit)));
 			character.BranchTo(':', '>', literal);
-			character.BranchTo('?', '?', escape.PushValue(new Lexem(LexemType.ZeroOrOne)));
+			character.BranchTo('?', '?', automata.PushValue(new Lexem(LexemType.ZeroOrOne)));
 			character.BranchTo('@', 'Z', literal);
-			character.BranchTo('[', '[', escape.PushValue(new Lexem(LexemType.ClassBegin)));
+			character.BranchTo('[', '[', automata.PushValue(new Lexem(LexemType.ClassBegin)));
 			character.BranchTo('\\', '\\', escape);
-			character.BranchTo(']', ']', escape.PushValue(new Lexem(LexemType.ClassEnd)));
-			character.BranchTo('^', '^', escape.PushValue(new Lexem(LexemType.Negate)));
+			character.BranchTo(']', ']', automata.PushValue(new Lexem(LexemType.ClassEnd)));
+			character.BranchTo('^', '^', automata.PushValue(new Lexem(LexemType.Negate)));
 			character.BranchTo('_', 'z', literal);
-			character.BranchTo('{', '{', escape.PushValue(new Lexem(LexemType.RepeatBegin)));
-			character.BranchTo('|', '|', escape.PushValue(new Lexem(LexemType.Alternative)));
-			character.BranchTo('}', '}', escape.PushValue(new Lexem(LexemType.RepeatEnd)));
+			character.BranchTo('{', '{', automata.PushValue(new Lexem(LexemType.RepeatBegin)));
+			character.BranchTo('|', '|', automata.PushValue(new Lexem(LexemType.Alternative)));
+			character.BranchTo('}', '}', automata.PushValue(new Lexem(LexemType.RepeatEnd)));
 			character.BranchTo('~', char.MaxValue, literal);
 
-			Matcher = new AutomataMatcher<Lexem>(character.ToDeterministicNode());
+			Matcher = new AutomataMatcher<Lexem>(character.ToDeterministic());
 		}
 
 		public static Node Match(IMatchIterator<Lexem> iterator)
@@ -331,27 +332,28 @@ namespace Mure.Compilers
 	{
 		public IMatcher<TValue> Compile(IEnumerable<(string, TValue)> input)
 		{
-			var start = NonDeterministicNode<TValue>.Create();
+			var automata = new NonDeterministicAutomata<TValue>();
+			var start = automata.PushEmpty();
 
 			foreach (var search in input)
-				CompilePattern(start, search.Item1, search.Item2);
+				CompilePattern(automata, start, search.Item1, search.Item2);
 
-			return new AutomataMatcher<TValue>(start.ToDeterministicNode());
+			return new AutomataMatcher<TValue>(start.ToDeterministic());
 		}
 
 		/// <Summary>
 		/// Compile regular expression pattern into graph of non-deterministic
 		/// states leading to given value.
 		/// </Summary>
-		private static void CompilePattern(NonDeterministicNode<TValue> start, string pattern, TValue value)
+		private static void CompilePattern(NonDeterministicAutomata<TValue> automata, NonDeterministicNode<TValue> start, string pattern, TValue value)
 		{
 			using (var reader = new StringReader(pattern))
 			{
 				var iterator = RegexCompiler.Matcher.Open(reader);
 				var node = RegexCompiler.Match(iterator);
-				var leaf = node.ConnectTo(start);
+				var leaf = node.ConnectTo(automata, start);
 
-				leaf.EpsilonTo(start.PushValue(value));
+				leaf.EpsilonTo(automata.PushValue(value));
 			}
 		}
 	}

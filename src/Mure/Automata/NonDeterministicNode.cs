@@ -2,18 +2,11 @@
 {
 	internal readonly struct NonDeterministicNode<TValue>
 	{
-		public static NonDeterministicNode<TValue> Create()
-		{
-			var automata = new NonDeterministicAutomata<TValue>();
-
-			return new NonDeterministicNode<TValue>(automata, automata.Push(new NonDeterministicState<TValue>(default, false)));
-		}
-
 		private readonly NonDeterministicAutomata<TValue> _automata;
 
 		private readonly int _index;
 
-		private NonDeterministicNode(NonDeterministicAutomata<TValue> automata, int index)
+		public NonDeterministicNode(NonDeterministicAutomata<TValue> automata, int index)
 		{
 			_automata = automata;
 			_index = index;
@@ -29,17 +22,7 @@
 			_automata.EpsilonTo(_index, target._index);
 		}
 
-		public NonDeterministicNode<TValue> PushEmpty()
-		{
-			return new NonDeterministicNode<TValue>(_automata, _automata.Push(new NonDeterministicState<TValue>(default, false)));
-		}
-
-		public NonDeterministicNode<TValue> PushValue(TValue value)
-		{
-			return new NonDeterministicNode<TValue>(_automata, _automata.Push(new NonDeterministicState<TValue>(value, true)));
-		}
-
-		public (DeterministicAutomata<TValue>, int) ToDeterministicNode()
+		public DeterministicAutomata<TValue> ToDeterministic()
 		{
 			return _automata.ToDeterministic(_index);
 		}

@@ -51,7 +51,7 @@ namespace Mure.Compilers.Regex
 		/// states connected to given parent state and return final state of
 		/// produced graph.
 		/// </Summary>
-		public NonDeterministicNode<TValue> ConnectTo<TValue>(NonDeterministicNode<TValue> parent)
+		public NonDeterministicNode<TValue> ConnectTo<TValue>(NonDeterministicAutomata<TValue> automata, NonDeterministicNode<TValue> parent)
 		{
 			NonDeterministicNode<TValue> next;
 
@@ -62,17 +62,17 @@ namespace Mure.Compilers.Regex
 					// [parent] ---- [child2] ---> [next]
 					//           \-- [child3] --/
 
-					next = parent.PushEmpty();
+					next = automata.PushEmpty();
 
 					foreach (var child in Children)
-						child.ConnectTo(parent).EpsilonTo(next);
+						child.ConnectTo(automata, parent).EpsilonTo(next);
 
 					break;
 
 				case NodeType.Character:
 					// [parent] --{begin, end}--> [next]
 
-					next = parent.PushEmpty();
+					next = automata.PushEmpty();
 
 					foreach (var range in Ranges)
 						parent.BranchTo(range.Begin, range.End, next);
@@ -86,9 +86,9 @@ namespace Mure.Compilers.Regex
 
 					// Convert until lower bound is reached
 					for (var i = 0; i < RepeatMin; ++i)
-						parent = Children[0].ConnectTo(parent);
+						parent = Children[0].ConnectTo(automata, parent);
 
-					next = parent.PushEmpty();
+					next = automata.PushEmpty();
 
 					parent.EpsilonTo(next);
 
@@ -97,7 +97,7 @@ namespace Mure.Compilers.Regex
 					{
 						for (var i = 0; i < RepeatMax - RepeatMin; ++i)
 						{
-							parent = Children[0].ConnectTo(parent);
+							parent = Children[0].ConnectTo(automata, parent);
 							parent.EpsilonTo(next);
 						}
 					}
@@ -105,7 +105,7 @@ namespace Mure.Compilers.Regex
 					// Unbounded repeat sequence, loop converted state over itself
 					else
 					{
-						var loop = Children[0].ConnectTo(parent);
+						var loop = Children[0].ConnectTo(automata, parent);
 
 						loop.EpsilonTo(parent);
 						loop.EpsilonTo(next);
@@ -119,7 +119,7 @@ namespace Mure.Compilers.Regex
 					next = parent;
 
 					foreach (var child in Children)
-						next = child.ConnectTo(next);
+						next = child.ConnectTo(automata, next);
 
 					break;
 

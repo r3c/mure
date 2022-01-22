@@ -8,17 +8,14 @@ namespace Mure.Matchers
 	{
 		private readonly DeterministicAutomata<TValue> _automata;
 
-		private readonly int _start;
-
-		public AutomataMatcher((DeterministicAutomata<TValue>, int) value)
+		public AutomataMatcher(DeterministicAutomata<TValue> automata)
 		{
-			_automata = value.Item1;
-			_start = value.Item2;
+			_automata = automata;
 		}
 
 		public IMatchIterator<TValue> Open(TextReader reader)
 		{
-			return new AutomataMatchIterator<TValue>(_automata, _start, reader);
+			return new AutomataMatchIterator<TValue>(_automata, reader);
 		}
 	}
 }

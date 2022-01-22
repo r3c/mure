@@ -6,6 +6,8 @@ namespace Mure.Automata
 {
 	internal class NonDeterministicAutomata<TValue>
 	{
+		public IReadOnlyList<NonDeterministicState<TValue>> States => _states;
+
 		private readonly List<NonDeterministicState<TValue>> _states = new();
 
 		public void BranchTo(int source, int begin, int end, int target)
@@ -21,27 +23,36 @@ namespace Mure.Automata
 			_states[source].Epsilons.Add(target);
 		}
 
-		public int Push(NonDeterministicState<TValue> state)
+		public NonDeterministicNode<TValue> PushEmpty()
 		{
 			var index = _states.Count;
 
-			_states.Add(state);
+			_states.Add(new NonDeterministicState<TValue>(default, false));
 
-			return index;
+			return new NonDeterministicNode<TValue>(this, index);
 		}
 
-		public (DeterministicAutomata<TValue>, int) ToDeterministic(int index)
+		public NonDeterministicNode<TValue> PushValue(TValue value)
 		{
-			var output = new DeterministicAutomata<TValue>();
-			var start = GetOrConvertState(output, new[] { index }, new List<Equivalence>());
+			var index = _states.Count;
 
-			return (output, start);
+			_states.Add(new NonDeterministicState<TValue>(value, true));
+
+			return new NonDeterministicNode<TValue>(this, index);
+		}
+
+		public DeterministicAutomata<TValue> ToDeterministic(int index)
+		{
+			var states = new List<DeterministicState<TValue>>();
+			var start = GetOrConvertState(states, new[] { index }, new List<Equivalence>());
+
+			return new DeterministicAutomata<TValue>(states, start);
 		}
 
 		/// <Summary>
 		/// https://www.geeksforgeeks.org/theory-of-computation-conversion-from-nfa-to-dfa/
 		/// </Summary>
-		private void ConnectToStates(DeterministicAutomata<TValue> output, int index, IReadOnlyList<int> indices, List<Equivalence> equivalences)
+		private void ConnectToStates(List<DeterministicState<TValue>> states, int index, IReadOnlyList<int> indices, List<Equivalence> equivalences)
 		{
 			var branches = indices
 				.SelectMany(GetAllBranchesOf)
@@ -117,7 +128,14 @@ namespace Mure.Automata
 				}
 
 				// Recursively convert target states to deterministic and connect current one to it
-				output.ConnectTo(index, branch.Begin, end, GetOrConvertState(output, targets, equivalences));
+				var state = states[index];
+
+				if (state.Branches.Count > 0 && branch.Begin <= state.Branches.Last().End)
+					throw new ArgumentOutOfRangeException(nameof(branch.Begin), branch.Begin, "range overlap");
+
+				var target = GetOrConvertState(states, targets, equivalences);
+
+				state.Branches.Add(new Branch(branch.Begin, end, target));
 			}
 		}
 
@@ -125,14 +143,19 @@ namespace Mure.Automata
 		/// Create new deterministic state equivalent to given set of input
 		/// non-deterministic ones.
 		/// </Summary>
-		private int CreateState(DeterministicAutomata<TValue> output, IEnumerable<int> indices)
+		private int CreateState(List<DeterministicState<TValue>> states, IEnumerable<int> indices)
 		{
 			var values = indices.SelectMany(index => GetAllValuesOf(index)).ToArray();
 
 			if (values.Length > 1)
 				throw new InvalidOperationException($"transition collision between multiple values: {string.Join(", ", values)}");
 
-			return values.Length > 0 ? output.PushValue(values[0]) : output.PushEmpty();
+			var state = values.Length > 0 ? new DeterministicState<TValue>(values[0], true) : new DeterministicState<TValue>(default, false);
+			var index = states.Count;
+
+			states.Add(state);
+
+			return index;
 		}
 
 		private IEnumerable<Branch> GetAllBranchesOf(int index)
@@ -155,7 +178,7 @@ namespace Mure.Automata
 		/// non-deterministic states in currently saved states, if any, or
 		/// start conversion of a new one otherwise.
 		/// </Summary>
-		private int GetOrConvertState(DeterministicAutomata<TValue> output, IReadOnlyList<int> indices, List<Equivalence> equivalences)
+		private int GetOrConvertState(List<DeterministicState<TValue>> states, IReadOnlyList<int> indices, List<Equivalence> equivalences)
 		{
 			var index = equivalences.FindIndex(equivalence => equivalence.Sources.SetEquals(indices));
 
@@ -164,11 +187,11 @@ namespace Mure.Automata
 				return equivalences[index].Target;
 
 			// No match was found: create new state, save it to known states and connect to child states
-			var result = CreateState(output, indices);
+			var result = CreateState(states, indices);
 
 			equivalences.Add(new Equivalence(indices, result));
 
-			ConnectToStates(output, result, indices, equivalences);
+			ConnectToStates(states, result, indices, equivalences);
 
 			return result;
 		}

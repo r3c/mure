@@ -1,46 +1,21 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Generic;
 
 namespace Mure.Automata
 {
-	internal class DeterministicAutomata<TValue>
+	internal readonly struct DeterministicAutomata<TValue>
 	{
-		public IReadOnlyList<DeterministicState<TValue>> States => _states;
+		public readonly IReadOnlyList<DeterministicState<TValue>> States;
+		public readonly int Start;
 
-		private readonly List<DeterministicState<TValue>> _states = new();
-
-		public int PushEmpty()
+		public DeterministicAutomata(IReadOnlyList<DeterministicState<TValue>> states, int start)
 		{
-			var index = _states.Count;
-
-			_states.Add(new DeterministicState<TValue>(default, false));
-
-			return index;
+			States = states;
+			Start = start;
 		}
 
-		public int PushValue(TValue value)
+		public bool TryFollow(int current, int key, out int next)
 		{
-			var index = _states.Count;
-
-			_states.Add(new DeterministicState<TValue>(value, true));
-
-			return index;
-		}
-
-		public void ConnectTo(int index, int begin, int end, int next)
-		{
-			var state = _states[index];
-
-			if (state.Branches.Count > 0 && begin <= state.Branches.Last().End)
-				throw new ArgumentOutOfRangeException(nameof(begin), begin, "range overlap");
-
-			state.Branches.Add(new Branch(begin, end, next));
-		}
-
-		public bool TryFollow(int index, int key, out int next)
-		{
-			var state = _states[index];
+			var state = States[current];
 			var match = state.Branches.BinarySearch(new Branch(key, default, default), BranchComparer.Instance);
 
 			if (match >= 0)
@@ -66,7 +41,7 @@ namespace Mure.Automata
 
 		public bool TryGetValue(int index, out TValue value)
 		{
-			var state = _states[index];
+			var state = States[index];
 
 			value = state.Value;
 
