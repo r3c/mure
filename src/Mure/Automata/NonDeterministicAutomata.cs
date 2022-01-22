@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Mure.MatchIterators.Automata
+namespace Mure.Automata
 {
 	internal class NonDeterministicAutomata<TValue>
 	{

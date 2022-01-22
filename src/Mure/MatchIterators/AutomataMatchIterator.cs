@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using Mure.MatchIterators.Automata;
+using Mure.Automata;
 
 namespace Mure.MatchIterators
 {

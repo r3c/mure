@@ -1,8 +1,8 @@
 using System;
-using Mure.MatchIterators.Automata;
+using Mure.Automata;
 using NUnit.Framework;
 
-namespace Mure.Test.Matchers.Automata
+namespace Mure.Test.Automata
 {
 	public class NonDeterministicAutomataTester
 	{

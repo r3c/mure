@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using Mure.MatchIterators.Automata;
+using Mure.Automata;
 
 namespace Mure.Compilers.Regex
 {

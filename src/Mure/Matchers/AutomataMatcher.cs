@@ -1,6 +1,6 @@
 using System.IO;
+using Mure.Automata;
 using Mure.MatchIterators;
-using Mure.MatchIterators.Automata;
 
 namespace Mure.Matchers
 {

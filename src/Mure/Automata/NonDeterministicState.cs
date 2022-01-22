@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace Mure.MatchIterators.Automata
+namespace Mure.Automata
 {
 	internal readonly struct NonDeterministicState<TValue>
 	{

@@ -1,6 +1,6 @@
 using System.IO;
+using Mure.Automata;
 using Mure.Matchers;
-using Mure.MatchIterators.Automata;
 using NUnit.Framework;
 
 namespace Mure.Test.Scanners

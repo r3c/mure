@@ -2,8 +2,8 @@
 using System.Collections.Generic;
 using System.IO;
 using Mure.Compilers.Regex;
+using Mure.Automata;
 using Mure.Matchers;
-using Mure.MatchIterators.Automata;
 
 namespace Mure.Compilers
 {
