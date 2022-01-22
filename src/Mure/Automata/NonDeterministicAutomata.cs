@@ -13,14 +13,6 @@ namespace Mure.Automata
 			_states[source].Branches.Add(new Branch(begin, end, target));
 		}
 
-		public (DeterministicAutomata<TValue>, int) ConvertToDeterministic(int index)
-		{
-			var output = new DeterministicAutomata<TValue>();
-			var start = GetOrConvertState(output, new[] { index }, new List<Equivalence>());
-
-			return (output, start);
-		}
-
 		public void EpsilonTo(int source, int target)
 		{
 			if (source == target)
@@ -29,22 +21,21 @@ namespace Mure.Automata
 			_states[source].Epsilons.Add(target);
 		}
 
-		public int PushEmpty()
+		public int Push(NonDeterministicState<TValue> state)
 		{
 			var index = _states.Count;
 
-			_states.Add(new NonDeterministicState<TValue>(default, false));
+			_states.Add(state);
 
 			return index;
 		}
 
-		public int PushValue(TValue value)
+		public (DeterministicAutomata<TValue>, int) ToDeterministic(int index)
 		{
-			var index = _states.Count;
+			var output = new DeterministicAutomata<TValue>();
+			var start = GetOrConvertState(output, new[] { index }, new List<Equivalence>());
 
-			_states.Add(new NonDeterministicState<TValue>(value, true));
-
-			return index;
+			return (output, start);
 		}
 
 		/// <Summary>

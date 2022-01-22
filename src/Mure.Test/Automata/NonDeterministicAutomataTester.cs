@@ -9,30 +9,28 @@ namespace Mure.Test.Automata
 		[Test]
 		public void ConvertToDeterministicDetectConflict()
 		{
-			var automata = new NonDeterministicAutomata<int>();
-			var q0 = automata.PushEmpty();
-			var q1 = automata.PushValue(17);
-			var q2 = automata.PushValue(42);
+			var q0 = NonDeterministicNode<int>.Create();
+			var q1 = q0.PushValue(17);
+			var q2 = q0.PushValue(42);
 
-			automata.BranchTo(q0, 'a', 'a', q1);
-			automata.BranchTo(q0, 'a', 'a', q2);
+			q0.BranchTo('a', 'a', q1);
+			q0.BranchTo('a', 'a', q2);
 
-			Assert.Throws<InvalidOperationException>(() => automata.ConvertToDeterministic(q0));
+			Assert.Throws<InvalidOperationException>(() => q0.ToDeterministicNode());
 		}
 
 		[Test]
 		public void EpsilonToNextIsConverted()
 		{
-			var automata = new NonDeterministicAutomata<int>();
-			var q0 = automata.PushEmpty();
-			var q1 = automata.PushEmpty();
-			var q2 = automata.PushValue(1);
+			var q0 = NonDeterministicNode<int>.Create();
+			var q1 = q0.PushEmpty();
+			var q2 = q0.PushValue(1);
 
-			automata.BranchTo(q0, 'a', 'a', q1);
-			automata.EpsilonTo(q0, q1);
-			automata.EpsilonTo(q1, q2);
+			q0.BranchTo('a', 'a', q1);
+			q0.EpsilonTo(q1);
+			q1.EpsilonTo(q2);
 
-			var (dAutomata, d0) = automata.ConvertToDeterministic(q0);
+			var (dAutomata, d0) = q0.ToDeterministicNode();
 
 			Assert.That(dAutomata.States[d0].Branches.Count, Is.EqualTo(1));
 			Assert.That(dAutomata.States[d0].Branches[0].Begin, Is.EqualTo('a'));
@@ -50,14 +48,13 @@ namespace Mure.Test.Automata
 		[Test]
 		public void EpsilonToSelfIsIgnored()
 		{
-			var automata = new NonDeterministicAutomata<int>();
-			var q0 = automata.PushEmpty();
-			var q1 = automata.PushValue(1);
+			var q0 = NonDeterministicNode<int>.Create();
+			var q1 = q0.PushValue(1);
 
-			automata.BranchTo(q0, 'a', 'a', q1);
-			automata.EpsilonTo(q1, q1);
+			q0.BranchTo('a', 'a', q1);
+			q1.EpsilonTo(q1);
 
-			var (dAutomata, d0) = automata.ConvertToDeterministic(q0);
+			var (dAutomata, d0) = q0.ToDeterministicNode();
 
 			Assert.That(dAutomata.States[d0].Branches.Count, Is.EqualTo(1));
 			Assert.That(dAutomata.States[d0].Branches[0].Begin, Is.EqualTo('a'));
