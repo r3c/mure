@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using Mure.Automata;
 
-namespace Mure.Compilers.Regex
+namespace Mure.Compilers.Regular
 {
 	readonly struct Node
 	{

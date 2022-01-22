@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
-using Mure.Compilers.Regex;
 using Mure.Automata;
+using Mure.Compilers.Regular;
 using Mure.Matchers;
 
 namespace Mure.Compilers
@@ -188,33 +187,16 @@ namespace Mure.Compilers
 		}
 	}
 
-	class GlobCompiler<TValue> : ICompiler<IEnumerable<(string, TValue)>, TValue>
+	class GlobCompiler<TValue> : RegularCompiler<TValue>
 	{
-		public IMatcher<TValue> Compile(IEnumerable<(string, TValue)> input)
+		public GlobCompiler() :
+			base(GlobCompiler.Matcher)
 		{
-			var automata = new NonDeterministicAutomata<TValue>();
-			var start = automata.PushEmpty();
-
-			foreach (var search in input)
-				CompilePattern(automata, start, search.Item1, search.Item2);
-
-			return new AutomataMatcher<TValue>(start.ToDeterministic());
 		}
 
-		/// <Summary>
-		/// Compile regular expression pattern into graph of non-deterministic
-		/// states leading to given value.
-		/// </Summary>
-		private static void CompilePattern(NonDeterministicAutomata<TValue> automata, NonDeterministicNode<TValue> start, string pattern, TValue value)
+		protected override Node ParsePattern(IMatchIterator<Lexem> iterator)
 		{
-			using (var reader = new StringReader(pattern))
-			{
-				var iterator = GlobCompiler.Matcher.Open(reader);
-				var node = GlobCompiler.MatchSequence(iterator, GlobCompiler.NextOrThrow(iterator), true);
-				var leaf = node.ConnectTo(automata, start);
-
-				leaf.EpsilonTo(automata.PushValue(value));
-			}
+			return GlobCompiler.MatchSequence(iterator, GlobCompiler.NextOrThrow(iterator), true);
 		}
 	}
 }

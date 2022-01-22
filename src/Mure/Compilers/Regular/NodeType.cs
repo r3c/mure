@@ -1,5 +1,4 @@
-
-namespace Mure.Compilers.Regex
+namespace Mure.Compilers.Regular
 {
 	enum NodeType
 	{

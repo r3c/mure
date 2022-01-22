@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using Mure.Compilers.Regex;
 using Mure.Automata;
+using Mure.Compilers.Regular;
 using Mure.Matchers;
 
 namespace Mure.Compilers
@@ -65,13 +65,6 @@ namespace Mure.Compilers
 			Matcher = new AutomataMatcher<Lexem>(character.ToDeterministic());
 		}
 
-		public static Node Match(IMatchIterator<Lexem> iterator)
-		{
-			var (node, _) = MatchAlternative(iterator, RegexCompiler.NextOrThrow(iterator), true);
-
-			return node;
-		}
-
 		public static Match<Lexem> NextOrThrow(IMatchIterator<Lexem> iterator)
 		{
 			if (!iterator.TryMatchNext(out var match))
@@ -85,7 +78,7 @@ namespace Mure.Compilers
 			return new ArgumentException($"{message} at position {position}");
 		}
 
-		private static (Node, Match<Lexem>) MatchAlternative(IMatchIterator<Lexem> iterator, Match<Lexem> match, bool atTopLevel)
+		public static (Node, Match<Lexem>) MatchAlternative(IMatchIterator<Lexem> iterator, Match<Lexem> match, bool atTopLevel)
 		{
 			var alternativeNodes = new List<Node>();
 
@@ -328,33 +321,18 @@ namespace Mure.Compilers
 		}
 	}
 
-	class RegexCompiler<TValue> : ICompiler<IEnumerable<(string, TValue)>, TValue>
+	class RegexCompiler<TValue> : RegularCompiler<TValue>
 	{
-		public IMatcher<TValue> Compile(IEnumerable<(string, TValue)> input)
+		public RegexCompiler() :
+			base(RegexCompiler.Matcher)
 		{
-			var automata = new NonDeterministicAutomata<TValue>();
-			var start = automata.PushEmpty();
-
-			foreach (var search in input)
-				CompilePattern(automata, start, search.Item1, search.Item2);
-
-			return new AutomataMatcher<TValue>(start.ToDeterministic());
 		}
 
-		/// <Summary>
-		/// Compile regular expression pattern into graph of non-deterministic
-		/// states leading to given value.
-		/// </Summary>
-		private static void CompilePattern(NonDeterministicAutomata<TValue> automata, NonDeterministicNode<TValue> start, string pattern, TValue value)
+		protected override Node ParsePattern(IMatchIterator<Lexem> iterator)
 		{
-			using (var reader = new StringReader(pattern))
-			{
-				var iterator = RegexCompiler.Matcher.Open(reader);
-				var node = RegexCompiler.Match(iterator);
-				var leaf = node.ConnectTo(automata, start);
+			var (node, _) = RegexCompiler.MatchAlternative(iterator, RegexCompiler.NextOrThrow(iterator), true);
 
-				leaf.EpsilonTo(automata.PushValue(value));
-			}
+			return node;
 		}
 	}
 }
