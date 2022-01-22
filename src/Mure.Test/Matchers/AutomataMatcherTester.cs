@@ -19,15 +19,16 @@ namespace Mure.Test.Scanners
 		[TestCase("c", false, default, default)]
 		public void ConnectToRange(string pattern, bool success, string expectedCapture, int expectedValue)
 		{
-			var q0 = new NonDeterministicState<int>();
-			var q1 = new NonDeterministicState<int>();
-			var q2 = new NonDeterministicState<int>(17);
+			var automata = new NonDeterministicAutomata<int>();
+			var q0 = automata.PushEmptyState();
+			var q1 = automata.PushEmptyState();
+			var q2 = automata.PushValueState(17);
 
-			q0.ConnectTo('a', 'b', q0);
-			q0.ConnectTo('a', 'a', q1);
-			q1.ConnectTo('b', 'b', q2);
+			automata.BranchTo(q0, 'a', 'b', q0);
+			automata.BranchTo(q0, 'a', 'a', q1);
+			automata.BranchTo(q1, 'b', 'b', q2);
 
-			ConvertAndMatch(q0, pattern, success, expectedCapture, expectedValue);
+			ConvertAndMatch(automata, q0, pattern, success, expectedCapture, expectedValue);
 		}
 
 		[TestCase("a", false, default, default)]
@@ -53,19 +54,20 @@ namespace Mure.Test.Scanners
 		[TestCase("df", true, "df", 42)]
 		public void ConnectToOverlaps(string pattern, bool success, string expectedCapture, int expectedValue)
 		{
-			var q0 = new NonDeterministicState<int>();
-			var q1 = new NonDeterministicState<int>();
-			var q2 = new NonDeterministicState<int>();
-			var q3 = new NonDeterministicState<int>(17);
-			var q4 = new NonDeterministicState<int>(42);
+			var automata = new NonDeterministicAutomata<int>();
+			var q0 = automata.PushEmptyState();
+			var q1 = automata.PushEmptyState();
+			var q2 = automata.PushEmptyState();
+			var q3 = automata.PushValueState(17);
+			var q4 = automata.PushValueState(42);
 
-			q0.ConnectTo('a', 'b', q0);
-			q0.ConnectTo('a', 'c', q1);
-			q0.ConnectTo('b', 'd', q2);
-			q1.ConnectTo('e', 'e', q3);
-			q2.ConnectTo('f', 'f', q4);
+			automata.BranchTo(q0, 'a', 'b', q0);
+			automata.BranchTo(q0, 'a', 'c', q1);
+			automata.BranchTo(q0, 'b', 'd', q2);
+			automata.BranchTo(q1, 'e', 'e', q3);
+			automata.BranchTo(q2, 'f', 'f', q4);
 
-			ConvertAndMatch(q0, pattern, success, expectedCapture, expectedValue);
+			ConvertAndMatch(automata, q0, pattern, success, expectedCapture, expectedValue);
 		}
 
 		[TestCase("a", false, default, default)]
@@ -77,33 +79,35 @@ namespace Mure.Test.Scanners
 		[TestCase("bb", true, "b", 17)]
 		public void EpsilonTo(string pattern, bool success, string expectedCapture, int expectedValue)
 		{
-			var q0 = new NonDeterministicState<int>();
-			var q1 = new NonDeterministicState<int>();
-			var q2 = new NonDeterministicState<int>(17);
+			var automata = new NonDeterministicAutomata<int>();
+			var q0 = automata.PushEmptyState();
+			var q1 = automata.PushEmptyState();
+			var q2 = automata.PushValueState(17);
 
-			q0.EpsilonTo(q1);
-			q0.ConnectTo('a', 'a', q0);
-			q1.ConnectTo('b', 'b', q2);
+			automata.EpsilonTo(q0, q1);
+			automata.BranchTo(q0, 'a', 'a', q0);
+			automata.BranchTo(q1, 'b', 'b', q2);
 
-			ConvertAndMatch(q0, pattern, success, expectedCapture, expectedValue);
+			ConvertAndMatch(automata, q0, pattern, success, expectedCapture, expectedValue);
 		}
 
 		[Test]
 		public void EpsilonToValue()
 		{
-			var q0 = new NonDeterministicState<int>();
-			var q1 = new NonDeterministicState<int>();
-			var q2 = new NonDeterministicState<int>(22);
+			var automata = new NonDeterministicAutomata<int>();
+			var q0 = automata.PushEmptyState();
+			var q1 = automata.PushEmptyState();
+			var q2 = automata.PushValueState(22);
 
-			q0.ConnectTo('a', 'a', q1);
-			q1.EpsilonTo(q2);
+			automata.BranchTo(q0, 'a', 'a', q1);
+			automata.EpsilonTo(q1, q2);
 
-			ConvertAndMatch(q0, "a", true, "a", 22);
+			ConvertAndMatch(automata, q0, "a", true, "a", 22);
 		}
 
-		private static void ConvertAndMatch<TValue>(NonDeterministicState<TValue> start, string pattern, bool success, string expectedCapture, TValue? expectedValue) where TValue : struct
+		private static void ConvertAndMatch<TValue>(NonDeterministicAutomata<TValue> automata, int start, string pattern, bool success, string expectedCapture, TValue? expectedValue) where TValue : struct
 		{
-			var scanner = new AutomataMatcher<TValue>(start.ConvertToDeterministic());
+			var scanner = new AutomataMatcher<TValue>(automata.ConvertToDeterministic(start));
 
 			using (var reader = new StringReader(pattern))
 			{

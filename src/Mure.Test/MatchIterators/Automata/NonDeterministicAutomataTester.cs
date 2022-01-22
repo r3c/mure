@@ -4,33 +4,35 @@ using NUnit.Framework;
 
 namespace Mure.Test.Matchers.Automata
 {
-	public class NonDeterministicStateTester
+	public class NonDeterministicAutomataTester
 	{
 		[Test]
 		public void ConvertToDeterministicDetectConflict()
 		{
-			var q0 = new NonDeterministicState<int>();
-			var q1 = new NonDeterministicState<int>(17);
-			var q2 = new NonDeterministicState<int>(42);
+			var automata = new NonDeterministicAutomata<int>();
+			var q0 = automata.PushEmptyState();
+			var q1 = automata.PushValueState(17);
+			var q2 = automata.PushValueState(42);
 
-			q0.ConnectTo('a', 'a', q1);
-			q0.ConnectTo('a', 'a', q2);
+			automata.BranchTo(q0, 'a', 'a', q1);
+			automata.BranchTo(q0, 'a', 'a', q2);
 
-			Assert.Throws<InvalidOperationException>(() => q0.ConvertToDeterministic());
+			Assert.Throws<InvalidOperationException>(() => automata.ConvertToDeterministic(q0));
 		}
 
 		[Test]
 		public void EpsilonToNextIsConverted()
 		{
-			var q0 = new NonDeterministicState<int>();
-			var q1 = new NonDeterministicState<int>();
-			var q2 = new NonDeterministicState<int>(1);
+			var automata = new NonDeterministicAutomata<int>();
+			var q0 = automata.PushEmptyState();
+			var q1 = automata.PushEmptyState();
+			var q2 = automata.PushValueState(1);
 
-			q0.ConnectTo('a', 'a', q1);
-			q0.EpsilonTo(q1);
-			q1.EpsilonTo(q2);
+			automata.BranchTo(q0, 'a', 'a', q1);
+			automata.EpsilonTo(q0, q1);
+			automata.EpsilonTo(q1, q2);
 
-			var d0 = q0.ConvertToDeterministic();
+			var d0 = automata.ConvertToDeterministic(q0);
 
 			Assert.That(d0.Branches.Count, Is.EqualTo(1));
 			Assert.That(d0.Branches[0].Begin, Is.EqualTo('a'));
@@ -48,13 +50,14 @@ namespace Mure.Test.Matchers.Automata
 		[Test]
 		public void EpsilonToSelfIsIgnored()
 		{
-			var q0 = new NonDeterministicState<int>();
-			var q1 = new NonDeterministicState<int>(1);
+			var automata = new NonDeterministicAutomata<int>();
+			var q0 = automata.PushEmptyState();
+			var q1 = automata.PushValueState(1);
 
-			q0.ConnectTo('a', 'a', q1);
-			q1.EpsilonTo(q1);
+			automata.BranchTo(q0, 'a', 'a', q1);
+			automata.EpsilonTo(q1, q1);
 
-			var d0 = q0.ConvertToDeterministic();
+			var d0 = automata.ConvertToDeterministic(q0);
 
 			Assert.That(d0.Branches.Count, Is.EqualTo(1));
 			Assert.That(d0.Branches[0].Begin, Is.EqualTo('a'));

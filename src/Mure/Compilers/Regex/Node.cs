@@ -51,9 +51,9 @@ namespace Mure.Compilers.Regex
 		/// states connected to given parent state and return final state of
 		/// produced graph.
 		/// </Summary>
-		public NonDeterministicState<TValue> ConvertToState<TValue>(NonDeterministicState<TValue> parent)
+		public int ConvertToState<TValue>(NonDeterministicAutomata<TValue> automata, int index)
 		{
-			NonDeterministicState<TValue> next;
+			int next;
 
 			switch (Type)
 			{
@@ -62,20 +62,20 @@ namespace Mure.Compilers.Regex
 					// [parent] ---- [child2] ---> [next]
 					//           \-- [child3] --/
 
-					next = new NonDeterministicState<TValue>();
+					next = automata.PushEmptyState();
 
 					foreach (var child in Children)
-						child.ConvertToState(parent).EpsilonTo(next);
+						automata.EpsilonTo(child.ConvertToState(automata, index), next);
 
 					break;
 
 				case NodeType.Character:
 					// [parent] --{begin, end}--> [next]
 
-					next = new NonDeterministicState<TValue>();
+					next = automata.PushEmptyState();
 
 					foreach (var range in Ranges)
-						parent.ConnectTo(range.Begin, range.End, next);
+						automata.BranchTo(index, range.Begin, range.End, next);
 
 					break;
 
@@ -86,29 +86,30 @@ namespace Mure.Compilers.Regex
 
 					// Convert until lower bound is reached
 					for (var i = 0; i < RepeatMin; ++i)
-						parent = Children[0].ConvertToState(parent);
+						index = Children[0].ConvertToState(automata, index);
 
-					next = new NonDeterministicState<TValue>();
+					next = automata.PushEmptyState();
 
-					parent.EpsilonTo(next);
+					automata.EpsilonTo(index, next);
 
 					// Bounded repeat sequence, perform conversion (max - min) times
 					if (RepeatMax >= 0)
 					{
 						for (var i = 0; i < RepeatMax - RepeatMin; ++i)
 						{
-							parent = Children[0].ConvertToState(parent);
-							parent.EpsilonTo(next);
+							index = Children[0].ConvertToState(automata, index);
+
+							automata.EpsilonTo(index, next);
 						}
 					}
 
 					// Unbounded repeat sequence, loop converted state over itself
 					else
 					{
-						var loop = Children[0].ConvertToState(parent);
+						var loop = Children[0].ConvertToState(automata, index);
 
-						loop.EpsilonTo(parent);
-						loop.EpsilonTo(next);
+						automata.EpsilonTo(loop, index);
+						automata.EpsilonTo(loop, next);
 					}
 
 					return next;
@@ -116,10 +117,10 @@ namespace Mure.Compilers.Regex
 				case NodeType.Sequence:
 					// [parent] -> [child1] -> [child2] -> ... -> [next]
 
-					next = parent;
+					next = index;
 
 					foreach (var child in Children)
-						next = child.ConvertToState(next);
+						next = child.ConvertToState(automata, next);
 
 					break;
 
