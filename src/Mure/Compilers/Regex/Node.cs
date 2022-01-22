@@ -62,7 +62,7 @@ namespace Mure.Compilers.Regex
 					// [parent] ---- [child2] ---> [next]
 					//           \-- [child3] --/
 
-					next = automata.PushEmptyState();
+					next = automata.PushEmpty();
 
 					foreach (var child in Children)
 						automata.EpsilonTo(child.ConvertToState(automata, index), next);
@@ -72,7 +72,7 @@ namespace Mure.Compilers.Regex
 				case NodeType.Character:
 					// [parent] --{begin, end}--> [next]
 
-					next = automata.PushEmptyState();
+					next = automata.PushEmpty();
 
 					foreach (var range in Ranges)
 						automata.BranchTo(index, range.Begin, range.End, next);
@@ -88,7 +88,7 @@ namespace Mure.Compilers.Regex
 					for (var i = 0; i < RepeatMin; ++i)
 						index = Children[0].ConvertToState(automata, index);
 
-					next = automata.PushEmptyState();
+					next = automata.PushEmpty();
 
 					automata.EpsilonTo(index, next);
 

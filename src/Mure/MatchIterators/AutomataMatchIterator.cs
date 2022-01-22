@@ -9,14 +9,16 @@ namespace Mure.MatchIterators
 	{
 		public int Position => _offset - _buffer.Count;
 
+		private readonly DeterministicAutomata<TValue> _automata;
 		private readonly List<int> _buffer;
 		private readonly TextReader _reader;
-		private readonly DeterministicState<TValue> _start;
+		private readonly int _start;
 
 		private int _offset;
 
-		public AutomataMatchIterator(DeterministicState<TValue> start, TextReader reader)
+		public AutomataMatchIterator(DeterministicAutomata<TValue> automata, int start, TextReader reader)
 		{
+			_automata = automata;
 			_buffer = new List<int>();
 			_offset = 0;
 			_reader = reader;
@@ -42,12 +44,12 @@ namespace Mure.MatchIterators
 				}
 
 				// Valid transition exists when following character from current state
-				if (current.TryFollow(_buffer[index], out current))
+				if (_automata.TryFollow(current, _buffer[index], out current))
 				{
-					if (current.HasValue)
+					if (_automata.TryGetValue(current, out var value))
 					{
 						bestLength = index + 1;
-						bestValue = current.Value;
+						bestValue = value;
 					}
 
 					builder.Append((char)_buffer[index]);
@@ -66,9 +68,9 @@ namespace Mure.MatchIterators
 				}
 
 				// No valid transition found but zero match is valid
-				else if (_start.HasValue)
+				else if (_automata.TryGetValue(_start, out var value))
 				{
-					match = new Match<TValue>(_start.Value, string.Empty);
+					match = new Match<TValue>(value, string.Empty);
 
 					return true;
 				}

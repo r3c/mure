@@ -6,16 +6,19 @@ namespace Mure.Matchers
 {
 	class AutomataMatcher<TValue> : IMatcher<TValue>
 	{
-		private readonly DeterministicState<TValue> _start;
+		private readonly DeterministicAutomata<TValue> _automata;
 
-		public AutomataMatcher(DeterministicState<TValue> start)
+		private readonly int _start;
+
+		public AutomataMatcher((DeterministicAutomata<TValue>, int) value)
 		{
-			_start = start;
+			_automata = value.Item1;
+			_start = value.Item2;
 		}
 
 		public IMatchIterator<TValue> Open(TextReader reader)
 		{
-			return new AutomataMatchIterator<TValue>(_start, reader);
+			return new AutomataMatchIterator<TValue>(_automata, _start, reader);
 		}
 	}
 }

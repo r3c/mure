@@ -20,9 +20,9 @@ namespace Mure.Test.Scanners
 		public void ConnectToRange(string pattern, bool success, string expectedCapture, int expectedValue)
 		{
 			var automata = new NonDeterministicAutomata<int>();
-			var q0 = automata.PushEmptyState();
-			var q1 = automata.PushEmptyState();
-			var q2 = automata.PushValueState(17);
+			var q0 = automata.PushEmpty();
+			var q1 = automata.PushEmpty();
+			var q2 = automata.PushValue(17);
 
 			automata.BranchTo(q0, 'a', 'b', q0);
 			automata.BranchTo(q0, 'a', 'a', q1);
@@ -55,11 +55,11 @@ namespace Mure.Test.Scanners
 		public void ConnectToOverlaps(string pattern, bool success, string expectedCapture, int expectedValue)
 		{
 			var automata = new NonDeterministicAutomata<int>();
-			var q0 = automata.PushEmptyState();
-			var q1 = automata.PushEmptyState();
-			var q2 = automata.PushEmptyState();
-			var q3 = automata.PushValueState(17);
-			var q4 = automata.PushValueState(42);
+			var q0 = automata.PushEmpty();
+			var q1 = automata.PushEmpty();
+			var q2 = automata.PushEmpty();
+			var q3 = automata.PushValue(17);
+			var q4 = automata.PushValue(42);
 
 			automata.BranchTo(q0, 'a', 'b', q0);
 			automata.BranchTo(q0, 'a', 'c', q1);
@@ -80,9 +80,9 @@ namespace Mure.Test.Scanners
 		public void EpsilonTo(string pattern, bool success, string expectedCapture, int expectedValue)
 		{
 			var automata = new NonDeterministicAutomata<int>();
-			var q0 = automata.PushEmptyState();
-			var q1 = automata.PushEmptyState();
-			var q2 = automata.PushValueState(17);
+			var q0 = automata.PushEmpty();
+			var q1 = automata.PushEmpty();
+			var q2 = automata.PushValue(17);
 
 			automata.EpsilonTo(q0, q1);
 			automata.BranchTo(q0, 'a', 'a', q0);
@@ -95,9 +95,9 @@ namespace Mure.Test.Scanners
 		public void EpsilonToValue()
 		{
 			var automata = new NonDeterministicAutomata<int>();
-			var q0 = automata.PushEmptyState();
-			var q1 = automata.PushEmptyState();
-			var q2 = automata.PushValueState(22);
+			var q0 = automata.PushEmpty();
+			var q1 = automata.PushEmpty();
+			var q2 = automata.PushValue(22);
 
 			automata.BranchTo(q0, 'a', 'a', q1);
 			automata.EpsilonTo(q1, q2);

@@ -6,16 +6,19 @@ namespace Mure.MatchIterators.Automata
 {
 	internal class NonDeterministicAutomata<TValue>
 	{
-		private readonly List<State> _states = new();
+		private readonly List<NonDeterministicState<TValue>> _states = new();
 
 		public void BranchTo(int source, int begin, int end, int target)
 		{
 			_states[source].Branches.Add(new Branch(begin, end, target));
 		}
 
-		public DeterministicState<TValue> ConvertToDeterministic(int index)
+		public (DeterministicAutomata<TValue>, int) ConvertToDeterministic(int index)
 		{
-			return GetOrConvertState(new[] { index }, new List<Equivalence>());
+			var output = new DeterministicAutomata<TValue>();
+			var start = GetOrConvertState(output, new[] { index }, new List<Equivalence>());
+
+			return (output, start);
 		}
 
 		public void EpsilonTo(int source, int target)
@@ -26,20 +29,20 @@ namespace Mure.MatchIterators.Automata
 			_states[source].Epsilons.Add(target);
 		}
 
-		public int PushEmptyState()
+		public int PushEmpty()
 		{
 			var index = _states.Count;
 
-			_states.Add(new State(default, false));
+			_states.Add(new NonDeterministicState<TValue>(default, false));
 
 			return index;
 		}
 
-		public int PushValueState(TValue value)
+		public int PushValue(TValue value)
 		{
 			var index = _states.Count;
 
-			_states.Add(new State(value, true));
+			_states.Add(new NonDeterministicState<TValue>(value, true));
 
 			return index;
 		}
@@ -47,7 +50,7 @@ namespace Mure.MatchIterators.Automata
 		/// <Summary>
 		/// https://www.geeksforgeeks.org/theory-of-computation-conversion-from-nfa-to-dfa/
 		/// </Summary>
-		private void ConnectToStates(DeterministicState<TValue> result, IReadOnlyList<int> indices, List<Equivalence> equivalences)
+		private void ConnectToStates(DeterministicAutomata<TValue> output, int index, IReadOnlyList<int> indices, List<Equivalence> equivalences)
 		{
 			var branches = indices
 				.SelectMany(GetAllBranchesOf)
@@ -123,7 +126,7 @@ namespace Mure.MatchIterators.Automata
 				}
 
 				// Recursively convert target states to deterministic and connect current one to it
-				result.ConnectTo(branch.Begin, end, GetOrConvertState(targets, equivalences));
+				output.ConnectTo(index, branch.Begin, end, GetOrConvertState(output, targets, equivalences));
 			}
 		}
 
@@ -131,14 +134,14 @@ namespace Mure.MatchIterators.Automata
 		/// Create new deterministic state equivalent to given set of input
 		/// non-deterministic ones.
 		/// </Summary>
-		private DeterministicState<TValue> CreateState(IEnumerable<int> indices)
+		private int CreateState(DeterministicAutomata<TValue> output, IEnumerable<int> indices)
 		{
 			var values = indices.SelectMany(index => GetAllValuesOf(index)).ToArray();
 
 			if (values.Length > 1)
 				throw new InvalidOperationException($"transition collision between multiple values: {string.Join(", ", values)}");
 
-			return values.Length > 0 ? new DeterministicState<TValue>(values[0]) : new DeterministicState<TValue>();
+			return values.Length > 0 ? output.PushValue(values[0]) : output.PushEmpty();
 		}
 
 		private IEnumerable<Branch> GetAllBranchesOf(int index)
@@ -161,7 +164,7 @@ namespace Mure.MatchIterators.Automata
 		/// non-deterministic states in currently saved states, if any, or
 		/// start conversion of a new one otherwise.
 		/// </Summary>
-		private DeterministicState<TValue> GetOrConvertState(IReadOnlyList<int> indices, List<Equivalence> equivalences)
+		private int GetOrConvertState(DeterministicAutomata<TValue> output, IReadOnlyList<int> indices, List<Equivalence> equivalences)
 		{
 			var index = equivalences.FindIndex(equivalence => equivalence.Sources.SetEquals(indices));
 
@@ -170,54 +173,24 @@ namespace Mure.MatchIterators.Automata
 				return equivalences[index].Target;
 
 			// No match was found: create new state, save it to known states and connect to child states
-			var result = CreateState(indices);
+			var result = CreateState(output, indices);
 
 			equivalences.Add(new Equivalence(indices, result));
 
-			ConnectToStates(result, indices, equivalences);
+			ConnectToStates(output, result, indices, equivalences);
 
 			return result;
-		}
-
-		private readonly struct Branch
-		{
-			public readonly int Begin;
-			public readonly int End;
-			public readonly int Target;
-
-			public Branch(int begin, int end, int target)
-			{
-				Begin = begin;
-				End = end;
-				Target = target;
-			}
 		}
 
 		private readonly struct Equivalence
 		{
 			public readonly IReadOnlySet<int> Sources;
-			public readonly DeterministicState<TValue> Target;
+			public readonly int Target;
 
-			public Equivalence(IEnumerable<int> sources, DeterministicState<TValue> target)
+			public Equivalence(IEnumerable<int> sources, int target)
 			{
 				Sources = sources.ToHashSet();
 				Target = target;
-			}
-		}
-
-		private readonly struct State
-		{
-			public readonly List<Branch> Branches;
-			public readonly List<int> Epsilons;
-			public readonly bool HasValue;
-			public readonly TValue Value;
-
-			public State(TValue value, bool hasValue)
-			{
-				Branches = new List<Branch>();
-				Epsilons = new List<int>();
-				HasValue = hasValue;
-				Value = value;
 			}
 		}
 	}

@@ -1,16 +1,16 @@
 ﻿namespace Mure.MatchIterators.Automata
 {
-	readonly struct Branch<T>
+	internal readonly struct Branch
 	{
 		public readonly int Begin;
 		public readonly int End;
-		public readonly T Value;
+		public readonly int Target;
 
-		public Branch(int begin, int end, T value)
+		public Branch(int begin, int end, int target)
 		{
 			Begin = begin;
 			End = end;
-			Value = value;
+			Target = target;
 		}
 	}
 }

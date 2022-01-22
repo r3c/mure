@@ -16,30 +16,30 @@ namespace Mure.Compilers
 		static GlobCompiler()
 		{
 			var automata = new NonDeterministicAutomata<Lexem>();
-			var escape = automata.PushEmptyState();
+			var escape = automata.PushEmpty();
 
-			automata.BranchTo(escape, '*', '*', automata.PushValueState(new Lexem(LexemType.Escape, '*')));
-			automata.BranchTo(escape, '?', '?', automata.PushValueState(new Lexem(LexemType.Escape, '?')));
-			automata.BranchTo(escape, '[', '[', automata.PushValueState(new Lexem(LexemType.Escape, '[')));
-			automata.BranchTo(escape, ']', ']', automata.PushValueState(new Lexem(LexemType.Escape, ']')));
-			automata.BranchTo(escape, '\\', '\\', automata.PushValueState(new Lexem(LexemType.Escape, '\\')));
+			automata.BranchTo(escape, '*', '*', automata.PushValue(new Lexem(LexemType.Escape, '*')));
+			automata.BranchTo(escape, '?', '?', automata.PushValue(new Lexem(LexemType.Escape, '?')));
+			automata.BranchTo(escape, '[', '[', automata.PushValue(new Lexem(LexemType.Escape, '[')));
+			automata.BranchTo(escape, ']', ']', automata.PushValue(new Lexem(LexemType.Escape, ']')));
+			automata.BranchTo(escape, '\\', '\\', automata.PushValue(new Lexem(LexemType.Escape, '\\')));
 
-			var character = automata.PushEmptyState();
-			var literal = automata.PushValueState(new Lexem(LexemType.Literal));
+			var character = automata.PushEmpty();
+			var literal = automata.PushValue(new Lexem(LexemType.Literal));
 
-			automata.BranchTo(character, -1, -1, automata.PushValueState(new Lexem(LexemType.End)));
+			automata.BranchTo(character, -1, -1, automata.PushValue(new Lexem(LexemType.End)));
 			automata.BranchTo(character, char.MinValue, ' ', literal);
-			automata.BranchTo(character, '!', '!', automata.PushValueState(new Lexem(LexemType.Negate)));
+			automata.BranchTo(character, '!', '!', automata.PushValue(new Lexem(LexemType.Negate)));
 			automata.BranchTo(character, '"', ')', literal);
-			automata.BranchTo(character, '*', '*', automata.PushValueState(new Lexem(LexemType.ZeroOrMore)));
+			automata.BranchTo(character, '*', '*', automata.PushValue(new Lexem(LexemType.ZeroOrMore)));
 			automata.BranchTo(character, '+', ',', literal);
-			automata.BranchTo(character, '-', '-', automata.PushValueState(new Lexem(LexemType.Range)));
+			automata.BranchTo(character, '-', '-', automata.PushValue(new Lexem(LexemType.Range)));
 			automata.BranchTo(character, '.', '>', literal);
-			automata.BranchTo(character, '?', '?', automata.PushValueState(new Lexem(LexemType.Wildcard)));
+			automata.BranchTo(character, '?', '?', automata.PushValue(new Lexem(LexemType.Wildcard)));
 			automata.BranchTo(character, '@', 'Z', literal);
-			automata.BranchTo(character, '[', '[', automata.PushValueState(new Lexem(LexemType.ClassBegin)));
+			automata.BranchTo(character, '[', '[', automata.PushValue(new Lexem(LexemType.ClassBegin)));
 			automata.BranchTo(character, '\\', '\\', escape);
-			automata.BranchTo(character, ']', ']', automata.PushValueState(new Lexem(LexemType.ClassEnd)));
+			automata.BranchTo(character, ']', ']', automata.PushValue(new Lexem(LexemType.ClassEnd)));
 			automata.BranchTo(character, '^', char.MaxValue, literal);
 
 			Matcher = new AutomataMatcher<Lexem>(automata.ConvertToDeterministic(character));
@@ -193,7 +193,7 @@ namespace Mure.Compilers
 		public IMatcher<TValue> Compile(IEnumerable<(string, TValue)> input)
 		{
 			var automata = new NonDeterministicAutomata<TValue>();
-			var start = automata.PushEmptyState();
+			var start = automata.PushEmpty();
 
 			foreach (var search in input)
 				CompilePattern(automata, start, search.Item1, search.Item2);
@@ -212,7 +212,7 @@ namespace Mure.Compilers
 				var iterator = GlobCompiler.Matcher.Open(reader);
 				var node = GlobCompiler.MatchSequence(iterator, GlobCompiler.NextOrThrow(iterator), true);
 				var leaf = node.ConvertToState(automata, index);
-				var target = automata.PushValueState(value);
+				var target = automata.PushValue(value);
 
 				automata.EpsilonTo(leaf, target);
 			}
