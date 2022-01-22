@@ -1,31 +1,28 @@
-name: validate
+name: Validate
 
 on:
   - push
 
+env:
+  DOTNET_VERSION: 5.0.x
+
 jobs:
   check:
-    name: Check code style (.NET v${{ matrix.dotnet.version }})
+    name: Check code style
     runs-on: ubuntu-latest
     env:
       DOTNET_CLI_TELEMETRY_OPTOUT: true
       DOTNET_NOLOGO: true
-    strategy:
-      matrix:
-        dotnet: # https://dotnetcli.blob.core.windows.net/dotnet/release-metadata/releases-index.json
-          - version: "5.0"
     steps:
       - uses: actions/checkout@v2
-      - name: Setup dotnet
-        uses: actions/setup-dotnet@v1
+      - uses: actions/setup-dotnet@v1
         with:
-          dotnet-version: ${{ matrix.dotnet.version }}
-      - run: dotnet tool install --add-source https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json -g dotnet-format
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - run: dotnet tool install -g dotnet-format
       - run: dotnet-format --check src/Mure.sln
 
   build:
-    name: Build solution (.NET v${{ matrix.dotnet.version }})
-    needs: check
+    name: Build and test on .NET v${{ matrix.dotnet.version }}
     runs-on: ubuntu-latest
     env:
       DOTNET_CLI_TELEMETRY_OPTOUT: true
@@ -36,29 +33,8 @@ jobs:
           - version: "5.0"
     steps:
       - uses: actions/checkout@v2
-      - name: Setup dotnet
-        uses: actions/setup-dotnet@v1
+      - uses: actions/setup-dotnet@v1
         with:
           dotnet-version: ${{ matrix.dotnet.version }}
-      - run: dotnet restore src/Mure.sln
       - run: dotnet build src/Mure.sln
-
-  test:
-    name: Run tests (.NET v${{ matrix.dotnet.version }})
-    needs: build
-    runs-on: ubuntu-latest
-    env:
-      DOTNET_CLI_TELEMETRY_OPTOUT: true
-      DOTNET_NOLOGO: true
-    strategy:
-      matrix:
-        dotnet: # https://dotnetcli.blob.core.windows.net/dotnet/release-metadata/releases-index.json
-          - version: "5.0"
-    steps:
-      - uses: actions/checkout@v2
-      - name: Setup dotnet
-        uses: actions/setup-dotnet@v1
-        with:
-          dotnet-version: ${{ matrix.dotnet.version }}
-      - run: dotnet restore src/Mure.sln
-      - run: dotnet test src/Mure.Test
+      - run: dotnet test src/Mure.sln
