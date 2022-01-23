@@ -56,13 +56,13 @@ namespace Mure.Automata
 		{
 			var branches = indices
 				.SelectMany(GetAllBranchesOf)
-				.OrderBy(branch => branch.Begin)
+				.OrderBy(branch => branch, BranchComparer.Instance)
 				.ToList();
 
 			for (var i = 0; i < branches.Count;)
 			{
 				var branch = branches[i];
-				int[] targets;
+				IReadOnlyList<int> targets;
 				int end;
 
 				// No next branch or no overlap between current branch and next one
@@ -110,7 +110,7 @@ namespace Mure.Automata
 							lowest = Math.Min(branches[last].Begin - 1, lowest);
 
 						// Use selected branches and range selection (use "ToArray" to force evaluation before source array is modified)
-						targets = branches.Skip(i).Take(last - i).Select(b => b.Target).Distinct().ToArray();
+						targets = branches.Skip(i).Take(last - i).Select(b => b.Target).Distinct().ToList();
 						end = lowest;
 
 						// Update starting range of overlapped branches from selection
