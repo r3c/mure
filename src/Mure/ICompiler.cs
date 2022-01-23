@@ -1,7 +1,9 @@
 namespace Mure
 {
-	interface ICompiler<TInput, TValue>
+	public interface ICompiler<TPattern, TValue>
 	{
-		IMatcher<TValue> Compile(TInput input);
+		ICompiler<TPattern, TValue> Associate(TPattern pattern, TValue value);
+
+		IMatcher<TValue> Compile();
 	}
 }

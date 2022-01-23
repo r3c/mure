@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using Mure.Automata;
-using Mure.Compilers.Regular;
+using Mure.Compilers.Pattern;
 using Mure.Matchers;
 
 namespace Mure.Compilers
@@ -321,14 +321,14 @@ namespace Mure.Compilers
 		}
 	}
 
-	class RegexCompiler<TValue> : RegularCompiler<TValue>
+	class RegexCompiler<TValue> : PatternCompiler<TValue>
 	{
 		public RegexCompiler() :
 			base(RegexCompiler.Matcher)
 		{
 		}
 
-		protected override Node ParsePattern(IMatchIterator<Lexem> iterator)
+		protected override Node CreateGraph(IMatchIterator<Lexem> iterator)
 		{
 			var (node, _) = RegexCompiler.MatchAlternative(iterator, RegexCompiler.NextOrThrow(iterator), true);
 
