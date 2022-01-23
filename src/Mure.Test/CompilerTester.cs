@@ -179,26 +179,26 @@ namespace Mure.Test
 			CompileRegexAndAssert(pattern, subject, capture);
 		}
 
-		[TestCase("\\(", "(", "(")]
-		[TestCase("\\)", ")", ")")]
-		[TestCase("\\*", "*", "*")]
-		[TestCase("\\+", "+", "+")]
-		[TestCase("\\-", "-", "-")]
-		[TestCase("\\.", ".", ".")]
-		[TestCase("\\?", "?", "?")]
-		[TestCase("\\[", "[", "[")]
-		[TestCase("\\]", "]", "]")]
-		[TestCase("\\\\'", "\\'", "\\'")]
-		[TestCase("\\^", "^", "^")]
-		[TestCase("\\{", "{", "{")]
-		[TestCase("\\|", "|", "|")]
-		[TestCase("\\}", "}", "}")]
-		[TestCase("\\n", "\n", "\n")]
-		[TestCase("\\r", "\r", "\r")]
-		[TestCase("\\t", "\t", "\t")]
-		public void CreateFromRegex_MatchEscape(string pattern, string subject, string capture)
+		[TestCase("\\(", "(")]
+		[TestCase("\\)", ")")]
+		[TestCase("\\*", "*")]
+		[TestCase("\\+", "+")]
+		[TestCase("\\-", "-")]
+		[TestCase("\\.", ".")]
+		[TestCase("\\?", "?")]
+		[TestCase("\\[", "[")]
+		[TestCase("\\]", "]")]
+		[TestCase("\\\\", "\\")]
+		[TestCase("\\^", "^")]
+		[TestCase("\\{", "{")]
+		[TestCase("\\|", "|")]
+		[TestCase("\\}", "}")]
+		[TestCase("\\n", "\n")]
+		[TestCase("\\r", "\r")]
+		[TestCase("\\t", "\t")]
+		public void CreateFromRegex_MatchEscape(string pattern, string subject)
 		{
-			CompileRegexAndAssert(pattern, subject, capture);
+			CompileRegexAndAssert(pattern, subject, subject);
 		}
 
 		[TestCase("()", "", "")]
