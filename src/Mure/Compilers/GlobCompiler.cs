@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Mure.Automata;
-using Mure.Compilers.Regular;
+using Mure.Compilers.Pattern;
 using Mure.Matchers;
 
 namespace Mure.Compilers
@@ -187,14 +187,14 @@ namespace Mure.Compilers
 		}
 	}
 
-	class GlobCompiler<TValue> : RegularCompiler<TValue>
+	class GlobCompiler<TValue> : PatternCompiler<TValue>
 	{
 		public GlobCompiler() :
 			base(GlobCompiler.Matcher)
 		{
 		}
 
-		protected override Node ParsePattern(IMatchIterator<Lexem> iterator)
+		protected override Node CreateGraph(IMatchIterator<Lexem> iterator)
 		{
 			return GlobCompiler.MatchSequence(iterator, GlobCompiler.NextOrThrow(iterator), true);
 		}

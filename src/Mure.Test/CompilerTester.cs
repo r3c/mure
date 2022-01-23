@@ -4,7 +4,7 @@ using NUnit.Framework;
 
 namespace Mure.Test
 {
-	class MatcherTester
+	class CompilerTester
 	{
 		[TestCase("[]]", "", null)]
 		[TestCase("[]]", "]", "]")]
@@ -106,10 +106,8 @@ namespace Mure.Test
 		[TestCase("\\i", "unrecognized character at position 0")]
 		public void CreateFromRegex_DetectSyntaxError(string pattern, string message)
 		{
-			var exception = Assert.Throws<ArgumentException>(() => Matcher.CreateFromRegex(new[]
-			{
-				(pattern, true)
-			}));
+			var compiler = Compiler.CreateFromRegex<bool>();
+			var exception = Assert.Throws<ArgumentException>(() => compiler.Associate(pattern, true));
 
 			Assert.That(exception.Message, Is.EqualTo(message));
 		}
@@ -315,35 +313,34 @@ namespace Mure.Test
 
 		private static void CompileGlobAndAssert(string pattern, string subject, string capture)
 		{
-			var matcher = Matcher.CreateFromGlob(new[]
-			{
-				(pattern, true)
-			});
+			var compiler = Compiler
+				.CreateFromGlob<bool>()
+				.Associate(pattern, true);
 
-			CompileAndAssert(matcher, subject, capture);
+			CompileAndAssert(compiler, subject, capture);
 		}
 
 		private static void CompileRegexAndAssert(string pattern, string subject, string capture)
 		{
-			var matcher = Matcher.CreateFromRegex(new[]
-			{
-				(pattern, true)
-			});
+			var compiler = Compiler
+				.CreateFromRegex<bool>()
+				.Associate(pattern, true);
 
-			CompileAndAssert(matcher, subject, capture);
+			CompileAndAssert(compiler, subject, capture);
 		}
 
-		private static void CompileAndAssert(IMatcher<bool> matcher, string subject, string capture)
+		private static void CompileAndAssert(ICompiler<string, bool> compiler, string subject, string capture)
 		{
-			using (var reader = new StringReader(subject))
-			{
-				var expected = capture != null;
-				var iterator = matcher.Open(reader);
+			var expected = capture != null;
+			var matcher = compiler.Compile();
 
-				Assert.That(iterator.TryMatchNext(out var match), Is.EqualTo(expected));
-				Assert.That(match.Capture, Is.EqualTo(capture));
-				Assert.That(match.Value, Is.EqualTo(expected));
-			}
+			using var reader = new StringReader(subject);
+
+			var iterator = matcher.Open(reader);
+
+			Assert.That(iterator.TryMatchNext(out var match), Is.EqualTo(expected));
+			Assert.That(match.Capture, Is.EqualTo(capture));
+			Assert.That(match.Value, Is.EqualTo(expected));
 		}
 	}
 }

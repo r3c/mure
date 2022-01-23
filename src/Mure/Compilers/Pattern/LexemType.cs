@@ -1,4 +1,4 @@
-namespace Mure.Compilers.Regular
+namespace Mure.Compilers.Pattern
 {
 	enum LexemType
 	{
