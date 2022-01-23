@@ -109,7 +109,7 @@ namespace Mure.Test
 			var compiler = Compiler.CreateFromRegex<bool>();
 			var exception = Assert.Throws<ArgumentException>(() => compiler.Associate(pattern, true));
 
-			Assert.That(exception.Message, Is.EqualTo(message));
+			Assert.That(exception?.Message, Is.EqualTo(message));
 		}
 
 		[TestCase("a|b", "", null)]

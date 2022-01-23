@@ -170,7 +170,7 @@ namespace Mure.Automata
 
 		private IEnumerable<TValue> GetAllValuesOf(int index)
 		{
-			return GetAllTargetsOf(index).Where(index => _states[index].HasValue).Select(index => _states[index].Value);
+			return GetAllTargetsOf(index).Where(index => _states[index].HasValue).Select(index => _states[index].Value!);
 		}
 
 		/// <Summary>

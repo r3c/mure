@@ -26,7 +26,7 @@ namespace Mure.MatchIterators
 		public bool TryMatchNext(out Match<TValue> match)
 		{
 			var bestLength = 0;
-			var bestValue = default(TValue);
+			var bestValue = default(TValue?);
 			var builder = new StringBuilder();
 			var current = _automata.Start;
 			var index = 0;
@@ -60,7 +60,7 @@ namespace Mure.MatchIterators
 
 					_buffer.RemoveRange(0, bestLength); // FIXME: slow
 
-					match = new Match<TValue>(bestValue, builder.ToString());
+					match = new Match<TValue>(bestValue!, builder.ToString());
 
 					return true;
 				}

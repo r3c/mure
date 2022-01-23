@@ -6,9 +6,9 @@ namespace Mure.Automata
 	{
 		public readonly List<Branch> Branches;
 		public readonly bool HasValue;
-		public readonly TValue Value;
+		public readonly TValue? Value;
 
-		public DeterministicState(TValue value, bool hasValue)
+		public DeterministicState(TValue? value, bool hasValue)
 		{
 			Branches = new List<Branch>();
 			HasValue = hasValue;

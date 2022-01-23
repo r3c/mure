@@ -43,7 +43,7 @@ namespace Mure.Automata
 		{
 			var state = States[index];
 
-			value = state.Value;
+			value = state.HasValue ? state.Value! : default!;
 
 			return state.HasValue;
 		}

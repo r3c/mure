@@ -7,9 +7,9 @@ namespace Mure.Automata
 		public readonly List<Branch> Branches;
 		public readonly List<int> Epsilons;
 		public readonly bool HasValue;
-		public readonly TValue Value;
+		public readonly TValue? Value;
 
-		public NonDeterministicState(TValue value, bool hasValue)
+		public NonDeterministicState(TValue? value, bool hasValue)
 		{
 			Branches = new List<Branch>();
 			Epsilons = new List<int>();
