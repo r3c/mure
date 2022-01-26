@@ -1,5 +1,4 @@
 using System;
-using System.Reflection;
 using Mure.Automata;
 using NUnit.Framework;
 
