@@ -108,7 +108,7 @@ namespace Mure.Test
 				.AddEndOfFile(Lexem.EOF)
 				.AddPattern("[0-9]+", Lexem.Integer)
 				.AddPattern("\\+", Lexem.Plus)
-				.AddPattern("\\-", Lexem.Minus)
+				.AddPattern("-", Lexem.Minus)
 				.AddPattern("\\(", Lexem.ParenthesisBegin)
 				.AddPattern("\\)", Lexem.ParenthesisEnd)
 				.AddPattern("[\n\r\t ]+", null)

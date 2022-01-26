@@ -21,12 +21,12 @@ There is no user documentation available yet, sorry!
 Here is a simple code sample:
 
 ```csharp
-var matcher = Matcher.CreateFromRegex(new[]
-{
-    ("[0-9]+", LexemType.Number),
-    ("\\+", LexemType.Plus),
-    ("-", LexemType.Minus)
-});
+var matcher = Compiler
+    .CreateFromRegex<LexemType>()
+    .AddPattern("[0-9]+", LexemType.Number)
+    .AddPattern("\\+", LexemType.Plus)
+    .AddPattern("-", LexemType.Minus)
+    .Compile();
 
 using (var reader = new StringReader("27+32-4"))
 {
