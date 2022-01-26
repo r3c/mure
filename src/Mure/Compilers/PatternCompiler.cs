@@ -20,9 +20,20 @@ namespace Mure.Compilers
 			_start = automata.PushEmpty();
 		}
 
-		public ICompiler<string, TValue> Associate(string pattern, TValue value)
+		public ICompiler<string, TValue> AddEndOfFile(TValue value)
 		{
-			AppendPattern(_automata, _start, pattern, value);
+			_start.BranchTo(-1, -1, _automata.PushValue(value));
+
+			return this;
+		}
+
+		public ICompiler<string, TValue> AddPattern(string pattern, TValue value)
+		{
+			var node = ParsePattern(pattern);
+			var stop = node.ConnectTo(_automata, _start);
+			var tail = _automata.PushValue(value);
+
+			stop.EpsilonTo(tail);
 
 			return this;
 		}
@@ -32,19 +43,10 @@ namespace Mure.Compilers
 			return new AutomataMatcher<TValue>(_start.ToDeterministic());
 		}
 
-		protected abstract Node CreateGraph(IMatchIterator<Lexem> iterator);
-
 		/// <Summary>
 		/// Compile regular pattern into graph of non-deterministic states leading to given value.
 		/// </Summary>
-		private void AppendPattern(NonDeterministicAutomata<TValue> automata, NonDeterministicNode<TValue> start, string pattern, TValue value)
-		{
-			var node = ParsePattern(pattern);
-			var stop = node.ConnectTo(automata, start);
-			var tail = automata.PushValue(value);
-
-			stop.EpsilonTo(tail);
-		}
+		protected abstract Node CreateGraph(IMatchIterator<Lexem> iterator);
 
 		private Node ParsePattern(string pattern)
 		{

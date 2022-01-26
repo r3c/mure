@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using NUnit.Framework;
 
@@ -98,6 +99,39 @@ namespace Mure.Test
 			CompileGlobAndAssert(pattern, subject, capture);
 		}
 
+		[TestCase("1\t+\n1", "Integer,Plus,Integer,EOF")]
+		[TestCase("1 + (2 - 3)", "Integer,Plus,ParenthesisBegin,Integer,Minus,Integer,ParenthesisEnd,EOF")]
+		public void CreateFromRegex_IterateLexem(string expression, string expectedLexems)
+		{
+			var matcher = Compiler
+				.CreateFromRegex<Lexem?>()
+				.AddEndOfFile(Lexem.EOF)
+				.AddPattern("[0-9]+", Lexem.Integer)
+				.AddPattern("\\+", Lexem.Plus)
+				.AddPattern("\\-", Lexem.Minus)
+				.AddPattern("\\(", Lexem.ParenthesisBegin)
+				.AddPattern("\\)", Lexem.ParenthesisEnd)
+				.AddPattern("[\n\r\t ]+", null)
+				.Compile();
+
+			var values = new List<Lexem>();
+
+			using (var reader = new StringReader(expression))
+			{
+				var iterator = matcher.Open(reader);
+
+				while (iterator.TryMatchNext(out var match))
+				{
+					if (match.Value is null)
+						continue;
+
+					values.Add(match.Value.Value);
+				}
+			}
+
+			Assert.That(string.Join(",", values), Is.EqualTo(expectedLexems));
+		}
+
 		[TestCase("[a", "unfinished characters class at position 3")]
 		[TestCase("a{1", "expected end of repeat specifier at position 4")]
 		[TestCase("a{a", "expected end of repeat specifier at position 3")]
@@ -107,7 +141,7 @@ namespace Mure.Test
 		public void CreateFromRegex_DetectSyntaxError(string pattern, string message)
 		{
 			var compiler = Compiler.CreateFromRegex<bool>();
-			var exception = Assert.Throws<ArgumentException>(() => compiler.Associate(pattern, true));
+			var exception = Assert.Throws<ArgumentException>(() => compiler.AddPattern(pattern, true));
 
 			Assert.That(exception?.Message, Is.EqualTo(message));
 		}
@@ -315,7 +349,7 @@ namespace Mure.Test
 		{
 			var compiler = Compiler
 				.CreateFromGlob<bool>()
-				.Associate(pattern, true);
+				.AddPattern(pattern, true);
 
 			CompileAndAssert(compiler, subject, capture);
 		}
@@ -324,7 +358,7 @@ namespace Mure.Test
 		{
 			var compiler = Compiler
 				.CreateFromRegex<bool>()
-				.Associate(pattern, true);
+				.AddPattern(pattern, true);
 
 			CompileAndAssert(compiler, subject, capture);
 		}
@@ -341,6 +375,16 @@ namespace Mure.Test
 			Assert.That(iterator.TryMatchNext(out var match), Is.EqualTo(expected));
 			Assert.That(match.Capture, Is.EqualTo(capture));
 			Assert.That(match.Value, Is.EqualTo(expected));
+		}
+
+		public enum Lexem
+		{
+			EOF,
+			Integer,
+			Plus,
+			Minus,
+			ParenthesisBegin,
+			ParenthesisEnd
 		}
 	}
 }
