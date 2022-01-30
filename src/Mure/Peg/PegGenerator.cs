@@ -1,0 +1,178 @@
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+
+namespace Mure.Peg
+{
+	class PegGenerator
+	{
+		private static readonly IReadOnlyList<Action<PegWriter, PegState>> Emitters = new Action<PegWriter, PegState>[]
+		{
+			(writer, state) => EmitCharacterSet(writer, state),
+			(writer, state) => EmitChoice(writer, state),
+			(writer, state) => EmitOneOrMore(writer, state),
+			(writer, state) => EmitSequence(writer, state),
+			(writer, state) => EmitZeroOrMore(writer, state),
+			(writer, state) => EmitZeroOrOne(writer, state)
+		};
+
+		public void Generate(TextWriter writer, IReadOnlyList<PegState> states, int startIndex)
+		{
+			writer.WriteLine(@"
+class PegStream
+{
+	private readonly System.Collections.Generic.List<int> _buffer;
+	private readonly System.IO.TextReader _reader;
+
+	public PegStream(System.IO.TextReader reader)
+	{
+		_buffer = new System.Collections.Generic.List<int>();
+		_reader = reader;
+	}
+
+	public int ReadAt(int position)
+	{
+		while (_buffer.Count <= position)
+			_buffer.Add(_reader.Read());
+
+		return _buffer[position];
+	}
+}
+");
+
+			var pegWriter = new PegWriter(writer);
+
+			pegWriter.WriteLine("class Parser");
+			pegWriter.BeginBlock();
+
+			pegWriter.WriteLine("public int? Parse(System.IO.TextReader reader)");
+			pegWriter.BeginBlock();
+			pegWriter.WriteLine("var stream = new PegStream(reader);");
+			pegWriter.WriteBreak();
+			pegWriter.WriteLine($"return State{startIndex}(stream, 0);");
+			pegWriter.EndBlock();
+
+			for (var i = 0; i < states.Count; ++i)
+			{
+				var state = states[i];
+				var emitter = Emitters[(int)state.Operator];
+
+				pegWriter.WriteBreak();
+				pegWriter.WriteLine($"private int? State{i}(PegStream stream, int position)");
+				pegWriter.BeginBlock();
+
+				emitter(pegWriter, state);
+
+				pegWriter.EndBlock();
+			}
+
+			pegWriter.EndBlock();
+		}
+
+		private static void EmitCharacterSet(PegWriter writer, PegState state)
+		{
+			writer.WriteLine("var character = stream.ReadAt(position);");
+			writer.WriteBreak();
+			writer.WriteLine("if (");
+
+			var separator = string.Empty;
+
+			foreach (var range in state.CharacterRanges)
+			{
+				writer.WriteLine($"{separator}(character >= {(int)range.Begin} && character <= {(int)range.End})");
+
+				separator = "|| ";
+			}
+
+			writer.WriteLine(")");
+			writer.WriteBreak();
+			writer.BeginBlock();
+			writer.WriteLine("return position + 1;");
+			writer.EndBlock();
+			writer.WriteBreak();
+			writer.WriteLine("return null;");
+		}
+
+		private static void EmitChoice(PegWriter writer, PegState state)
+		{
+			foreach (int index in state.StateIndices)
+			{
+				var name = $"choice{index}";
+
+				writer.WriteLine($"var {name} = State{index}(stream, position);");
+				writer.WriteBreak();
+				writer.WriteLine($"if ({name}.HasValue)");
+				writer.BeginBlock();
+				writer.WriteLine($"return {name};");
+				writer.EndBlock();
+				writer.WriteBreak();
+			}
+
+			writer.WriteLine("return null;");
+		}
+
+		private static void EmitOneOrMore(PegWriter writer, PegState state)
+		{
+			var index = state.StateIndices[0];
+
+			writer.WriteLine($"var first = State{index}(stream, position);");
+			writer.WriteBreak();
+			writer.WriteLine("if (!first.HasValue)");
+			writer.BeginBlock();
+			writer.WriteLine("return null;");
+			writer.EndBlock();
+			writer.WriteBreak();
+			writer.WriteLine("position = first.Value;");
+			writer.WriteBreak();
+
+			EmitZeroOrMore(writer, state);
+		}
+
+		private static void EmitSequence(PegWriter writer, PegState state)
+		{
+			writer.WriteLine("int? next;");
+			writer.WriteBreak();
+
+			foreach (int index in state.StateIndices)
+			{
+				writer.WriteLine($"next = State{index}(stream, position);");
+				writer.WriteBreak();
+				writer.WriteLine($"if (!next.HasValue)");
+				writer.BeginBlock();
+				writer.WriteLine($"return null;");
+				writer.EndBlock();
+				writer.WriteBreak();
+				writer.WriteLine($"position = next.Value;");
+				writer.WriteBreak();
+			}
+
+			writer.WriteLine("return position;");
+		}
+
+		private static void EmitZeroOrMore(PegWriter writer, PegState state)
+		{
+			var index = state.StateIndices[0];
+
+			writer.WriteLine("while (true)");
+			writer.BeginBlock();
+			writer.WriteLine($"var next = State{index}(stream, position);");
+			writer.WriteBreak();
+			writer.WriteLine("if (!next.HasValue)");
+			writer.BeginBlock();
+			writer.WriteLine("return position;");
+			writer.EndBlock();
+			writer.WriteBreak();
+			writer.WriteLine("position = next.Value;");
+			writer.EndBlock();
+		}
+
+		private static void EmitZeroOrOne(PegWriter writer, PegState state)
+		{
+			var index = state.StateIndices[0];
+
+			writer.WriteLine($"var next = State{index}(stream, position);");
+			writer.WriteBreak();
+			writer.WriteLine("return next ?? position;");
+		}
+	}
+}
