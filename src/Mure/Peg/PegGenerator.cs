@@ -18,7 +18,8 @@ namespace Mure.Peg
 
 		public void Generate(TextWriter writer, IReadOnlyList<PegState> states, int startIndex)
 		{
-			writer.WriteLine(@"
+			writer.WriteLine(@"// Generated code
+
 class PegStream
 {
 	private readonly System.Collections.Generic.List<int> _buffer;
@@ -49,7 +50,7 @@ class PegStream
 			pegWriter.BeginBlock();
 			pegWriter.WriteLine("var stream = new PegStream(reader);");
 			pegWriter.WriteBreak();
-			pegWriter.WriteLine($"return State{startIndex}(stream, 0);");
+			pegWriter.WriteLine($"return {GetOperationName(startIndex)}(stream, 0);");
 			pegWriter.EndBlock();
 
 			for (var i = 0; i < states.Count; ++i)
@@ -59,7 +60,7 @@ class PegStream
 				var emitter = Emitters[(int)operation.Operator];
 
 				pegWriter.WriteBreak();
-				pegWriter.WriteLine($"private int? State{i}(PegStream stream, int position)");
+				pegWriter.WriteLine($"private int? {GetOperationName(i)}(PegStream stream, int position)");
 				pegWriter.BeginBlock();
 
 				emitter(pegWriter, operation);
@@ -68,6 +69,11 @@ class PegStream
 			}
 
 			pegWriter.EndBlock();
+		}
+
+		private static string GetOperationName(int index)
+		{
+			return $"State{index}";
 		}
 
 		private static void EmitCharacterSet(PegWriter writer, PegOperation operation)
@@ -100,7 +106,7 @@ class PegStream
 			{
 				var name = $"choice{index}";
 
-				writer.WriteLine($"var {name} = State{index}(stream, position);");
+				writer.WriteLine($"var {name} = {GetOperationName(index)}(stream, position);");
 				writer.WriteBreak();
 				writer.WriteLine($"if ({name}.HasValue)");
 				writer.BeginBlock();
@@ -116,7 +122,7 @@ class PegStream
 		{
 			var index = operation.StateIndices[0];
 
-			writer.WriteLine($"var first = State{index}(stream, position);");
+			writer.WriteLine($"var first = {GetOperationName(index)}(stream, position);");
 			writer.WriteBreak();
 			writer.WriteLine("if (!first.HasValue)");
 			writer.BeginBlock();
@@ -136,7 +142,7 @@ class PegStream
 
 			foreach (int index in operation.StateIndices)
 			{
-				writer.WriteLine($"next = State{index}(stream, position);");
+				writer.WriteLine($"next = {GetOperationName(index)}(stream, position);");
 				writer.WriteBreak();
 				writer.WriteLine($"if (!next.HasValue)");
 				writer.BeginBlock();
@@ -156,7 +162,7 @@ class PegStream
 
 			writer.WriteLine("while (true)");
 			writer.BeginBlock();
-			writer.WriteLine($"var next = State{index}(stream, position);");
+			writer.WriteLine($"var next = {GetOperationName(index)}(stream, position);");
 			writer.WriteBreak();
 			writer.WriteLine("if (!next.HasValue)");
 			writer.BeginBlock();
@@ -171,7 +177,7 @@ class PegStream
 		{
 			var index = operation.StateIndices[0];
 
-			writer.WriteLine($"var next = State{index}(stream, position);");
+			writer.WriteLine($"var next = {GetOperationName(index)}(stream, position);");
 			writer.WriteBreak();
 			writer.WriteLine("return next ?? position;");
 		}
