@@ -39,19 +39,17 @@ class PegStream
 		return _buffer[position];
 	}
 }
-");
 
-			var pegWriter = new PegWriter(writer);
+class Parser
+{
+	public int? Parse(System.IO.TextReader reader)
+	{
+		var stream = new PegStream(reader);
 
-			pegWriter.WriteLine("class Parser");
-			pegWriter.BeginBlock();
+		return " + GetOperationName(startIndex) + @"(stream, 0);
+	}");
 
-			pegWriter.WriteLine("public int? Parse(System.IO.TextReader reader)");
-			pegWriter.BeginBlock();
-			pegWriter.WriteLine("var stream = new PegStream(reader);");
-			pegWriter.WriteBreak();
-			pegWriter.WriteLine($"return {GetOperationName(startIndex)}(stream, 0);");
-			pegWriter.EndBlock();
+			var pegWriter = new PegWriter(writer, 1);
 
 			for (var i = 0; i < states.Count; ++i)
 			{
@@ -68,7 +66,8 @@ class PegStream
 				pegWriter.EndBlock();
 			}
 
-			pegWriter.EndBlock();
+			writer.Write(@"
+}");
 		}
 
 		private static string GetOperationName(int index)
