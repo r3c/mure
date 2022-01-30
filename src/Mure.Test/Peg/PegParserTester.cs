@@ -15,29 +15,29 @@ namespace Mure.Test.Peg
 		{
 			var states = new PegState[]
 			{
-				PegState.CreateSequence(new[] { 1 }), // 0: start
-				PegState.CreateSequence(new[] { 7, 2 }), // 1: sum
-				PegState.CreateZeroOrMore(3),
-				PegState.CreateSequence(new[] { 4, 7 }),
-				PegState.CreateChoice(new[] { 5, 6 }),
-				PegState.CreateCharacterSet(new[] { new PegRange('+', '+') }),
-				PegState.CreateCharacterSet(new[] { new PegRange('-', '-') }),
-				PegState.CreateSequence(new[] { 13, 8 }), // 7: product
-				PegState.CreateZeroOrMore(9),
-				PegState.CreateSequence(new[] { 10, 13 }),
-				PegState.CreateChoice(new[] { 11, 12 }),
-				PegState.CreateCharacterSet(new[] { new PegRange('*', '*') }),
-				PegState.CreateCharacterSet(new[] { new PegRange('/', '/') }),
-				PegState.CreateSequence(new[] { 17, 14 }), // 13: power
-				PegState.CreateZeroOrOne(15),
-				PegState.CreateSequence(new[] { 16, 13 }),
-				PegState.CreateCharacterSet(new[] { new PegRange('^', '^') }),
-				PegState.CreateChoice(new[] { 18, 20 }), // 17: value
-				PegState.CreateOneOrMore(19),
-				PegState.CreateCharacterSet(new[] { new PegRange('0', '9') }),
-				PegState.CreateSequence(new[] { 21, 0, 22 }),
-				PegState.CreateCharacterSet(new[] { new PegRange('(', '(') }),
-				PegState.CreateCharacterSet(new[] { new PegRange(')', ')') })
+				new PegState(PegOperation.CreateSequence(new[] { 1 }), null),
+				new PegState(PegOperation.CreateSequence(new[] { 7, 2 }), "sum"), // 1: sum
+				new PegState(PegOperation.CreateZeroOrMore(3), null),
+				new PegState(PegOperation.CreateSequence(new[] { 4, 7 }), null),
+				new PegState(PegOperation.CreateChoice(new[] { 5, 6 }), null),
+				new PegState(PegOperation.CreateCharacterSet(new[] { new PegRange('+', '+') }), null),
+				new PegState(PegOperation.CreateCharacterSet(new[] { new PegRange('-', '-') }), null),
+				new PegState(PegOperation.CreateSequence(new[] { 13, 8 }), "product"), // 7: product
+				new PegState(PegOperation.CreateZeroOrMore(9), null),
+				new PegState(PegOperation.CreateSequence(new[] { 10, 13 }), null),
+				new PegState(PegOperation.CreateChoice(new[] { 11, 12 }), null),
+				new PegState(PegOperation.CreateCharacterSet(new[] { new PegRange('*', '*') }), null),
+				new PegState(PegOperation.CreateCharacterSet(new[] { new PegRange('/', '/') }), null),
+				new PegState(PegOperation.CreateSequence(new[] { 17, 14 }), "power"), // 13: power
+				new PegState(PegOperation.CreateZeroOrOne(15), null),
+				new PegState(PegOperation.CreateSequence(new[] { 16, 13 }), null),
+				new PegState(PegOperation.CreateCharacterSet(new[] { new PegRange('^', '^') }), null),
+				new PegState(PegOperation.CreateChoice(new[] { 18, 20 }), "value"), // 17: value
+				new PegState(PegOperation.CreateOneOrMore(19), null),
+				new PegState(PegOperation.CreateCharacterSet(new[] { new PegRange('0', '9') }), null),
+				new PegState(PegOperation.CreateSequence(new[] { 21, 0, 22 }), null),
+				new PegState(PegOperation.CreateCharacterSet(new[] { new PegRange('(', '(') }), null),
+				new PegState(PegOperation.CreateCharacterSet(new[] { new PegRange(')', ')') }), null)
 			};
 
 			// Generator

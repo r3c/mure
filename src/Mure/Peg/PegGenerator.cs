@@ -6,14 +6,14 @@ namespace Mure.Peg
 {
 	class PegGenerator
 	{
-		private static readonly IReadOnlyList<Action<PegWriter, PegState>> Emitters = new Action<PegWriter, PegState>[]
+		private static readonly IReadOnlyList<Action<PegWriter, PegOperation>> Emitters = new Action<PegWriter, PegOperation>[]
 		{
-			(writer, state) => EmitCharacterSet(writer, state),
-			(writer, state) => EmitChoice(writer, state),
-			(writer, state) => EmitOneOrMore(writer, state),
-			(writer, state) => EmitSequence(writer, state),
-			(writer, state) => EmitZeroOrMore(writer, state),
-			(writer, state) => EmitZeroOrOne(writer, state)
+			(writer, operation) => EmitCharacterSet(writer, operation),
+			(writer, operation) => EmitChoice(writer, operation),
+			(writer, operation) => EmitOneOrMore(writer, operation),
+			(writer, operation) => EmitSequence(writer, operation),
+			(writer, operation) => EmitZeroOrMore(writer, operation),
+			(writer, operation) => EmitZeroOrOne(writer, operation)
 		};
 
 		public void Generate(TextWriter writer, IReadOnlyList<PegState> states, int startIndex)
@@ -55,13 +55,14 @@ class PegStream
 			for (var i = 0; i < states.Count; ++i)
 			{
 				var state = states[i];
-				var emitter = Emitters[(int)state.Operator];
+				var operation = state.Operation;
+				var emitter = Emitters[(int)operation.Operator];
 
 				pegWriter.WriteBreak();
 				pegWriter.WriteLine($"private int? State{i}(PegStream stream, int position)");
 				pegWriter.BeginBlock();
 
-				emitter(pegWriter, state);
+				emitter(pegWriter, operation);
 
 				pegWriter.EndBlock();
 			}
@@ -69,7 +70,7 @@ class PegStream
 			pegWriter.EndBlock();
 		}
 
-		private static void EmitCharacterSet(PegWriter writer, PegState state)
+		private static void EmitCharacterSet(PegWriter writer, PegOperation operation)
 		{
 			writer.WriteLine("var character = stream.ReadAt(position);");
 			writer.WriteBreak();
@@ -77,7 +78,7 @@ class PegStream
 
 			var separator = string.Empty;
 
-			foreach (var range in state.CharacterRanges)
+			foreach (var range in operation.CharacterRanges)
 			{
 				writer.WriteLine($"{separator}(character >= {(int)range.Begin} && character <= {(int)range.End})");
 
@@ -93,9 +94,9 @@ class PegStream
 			writer.WriteLine("return null;");
 		}
 
-		private static void EmitChoice(PegWriter writer, PegState state)
+		private static void EmitChoice(PegWriter writer, PegOperation operation)
 		{
-			foreach (int index in state.StateIndices)
+			foreach (int index in operation.StateIndices)
 			{
 				var name = $"choice{index}";
 
@@ -111,9 +112,9 @@ class PegStream
 			writer.WriteLine("return null;");
 		}
 
-		private static void EmitOneOrMore(PegWriter writer, PegState state)
+		private static void EmitOneOrMore(PegWriter writer, PegOperation operation)
 		{
-			var index = state.StateIndices[0];
+			var index = operation.StateIndices[0];
 
 			writer.WriteLine($"var first = State{index}(stream, position);");
 			writer.WriteBreak();
@@ -125,15 +126,15 @@ class PegStream
 			writer.WriteLine("position = first.Value;");
 			writer.WriteBreak();
 
-			EmitZeroOrMore(writer, state);
+			EmitZeroOrMore(writer, operation);
 		}
 
-		private static void EmitSequence(PegWriter writer, PegState state)
+		private static void EmitSequence(PegWriter writer, PegOperation operation)
 		{
 			writer.WriteLine("int? next;");
 			writer.WriteBreak();
 
-			foreach (int index in state.StateIndices)
+			foreach (int index in operation.StateIndices)
 			{
 				writer.WriteLine($"next = State{index}(stream, position);");
 				writer.WriteBreak();
@@ -149,9 +150,9 @@ class PegStream
 			writer.WriteLine("return position;");
 		}
 
-		private static void EmitZeroOrMore(PegWriter writer, PegState state)
+		private static void EmitZeroOrMore(PegWriter writer, PegOperation operation)
 		{
-			var index = state.StateIndices[0];
+			var index = operation.StateIndices[0];
 
 			writer.WriteLine("while (true)");
 			writer.BeginBlock();
@@ -166,9 +167,9 @@ class PegStream
 			writer.EndBlock();
 		}
 
-		private static void EmitZeroOrOne(PegWriter writer, PegState state)
+		private static void EmitZeroOrOne(PegWriter writer, PegOperation operation)
 		{
-			var index = state.StateIndices[0];
+			var index = operation.StateIndices[0];
 
 			writer.WriteLine($"var next = State{index}(stream, position);");
 			writer.WriteBreak();
