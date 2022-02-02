@@ -2,13 +2,13 @@
 {
 	readonly struct PegState
 	{
-		public readonly string? Identifier;
 		public readonly PegOperation Operation;
+		public readonly string? Type;
 
-		public PegState(PegOperation operation, string? identifier)
+		public PegState(PegOperation operation, string? type)
 		{
-			Identifier = identifier;
 			Operation = operation;
+			Type = type;
 		}
 	}
 }

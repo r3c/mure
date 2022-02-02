@@ -3,6 +3,7 @@ using System.IO;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.CSharp.Scripting;
 using Mure.Peg;
+using Mure.Peg.Generators;
 using NUnit.Framework;
 
 namespace Mure.Test.Peg
@@ -15,38 +16,38 @@ namespace Mure.Test.Peg
 		{
 			var states = new PegState[]
 			{
-				new PegState(PegOperation.CreateSequence(new[] { 1 }), null),
-				new PegState(PegOperation.CreateSequence(new[] { 7, 2 }), "sum"), // 1: sum
-				new PegState(PegOperation.CreateZeroOrMore(3), null),
-				new PegState(PegOperation.CreateSequence(new[] { 4, 7 }), null),
-				new PegState(PegOperation.CreateChoice(new[] { 5, 6 }), null),
+				new PegState(PegOperation.CreateSequence(new[] { new PegReference(1, null) }), null),
+				new PegState(PegOperation.CreateSequence(new[] { new PegReference(7, null), new PegReference(2, null) }), null), // 1: sum
+				new PegState(PegOperation.CreateZeroOrMore(new PegReference(3, null)), null),
+				new PegState(PegOperation.CreateSequence(new[] { new PegReference(4, null), new PegReference(7, null) }), null),
+				new PegState(PegOperation.CreateChoice(new[] { new PegReference(5, null), new PegReference(6, null) }), null),
 				new PegState(PegOperation.CreateCharacterSet(new[] { new PegRange('+', '+') }), null),
 				new PegState(PegOperation.CreateCharacterSet(new[] { new PegRange('-', '-') }), null),
-				new PegState(PegOperation.CreateSequence(new[] { 13, 8 }), "product"), // 7: product
-				new PegState(PegOperation.CreateZeroOrMore(9), null),
-				new PegState(PegOperation.CreateSequence(new[] { 10, 13 }), null),
-				new PegState(PegOperation.CreateChoice(new[] { 11, 12 }), null),
+				new PegState(PegOperation.CreateSequence(new[] { new PegReference(13, null), new PegReference(8, null) }), null), // 7: product
+				new PegState(PegOperation.CreateZeroOrMore(new PegReference(9, null)), null),
+				new PegState(PegOperation.CreateSequence(new[] { new PegReference(10, null), new PegReference(13, null) }), null),
+				new PegState(PegOperation.CreateChoice(new[] { new PegReference(11, null), new PegReference(12, null) }), null),
 				new PegState(PegOperation.CreateCharacterSet(new[] { new PegRange('*', '*') }), null),
 				new PegState(PegOperation.CreateCharacterSet(new[] { new PegRange('/', '/') }), null),
-				new PegState(PegOperation.CreateSequence(new[] { 17, 14 }), "power"), // 13: power
-				new PegState(PegOperation.CreateZeroOrOne(15), null),
-				new PegState(PegOperation.CreateSequence(new[] { 16, 13 }), null),
+				new PegState(PegOperation.CreateSequence(new[] { new PegReference(17, null), new PegReference(14, null) }), null), // 13: power
+				new PegState(PegOperation.CreateZeroOrOne(new PegReference(15, null)), null),
+				new PegState(PegOperation.CreateSequence(new[] { new PegReference(16, null), new PegReference(13, null) }), null),
 				new PegState(PegOperation.CreateCharacterSet(new[] { new PegRange('^', '^') }), null),
-				new PegState(PegOperation.CreateChoice(new[] { 18, 20 }), "value"), // 17: value
-				new PegState(PegOperation.CreateOneOrMore(19), null),
+				new PegState(PegOperation.CreateChoice(new[] { new PegReference(18, null), new PegReference(20, null) }), null), // 17: value
+				new PegState(PegOperation.CreateOneOrMore(new PegReference(19, null)), null),
 				new PegState(PegOperation.CreateCharacterSet(new[] { new PegRange('0', '9') }), null),
-				new PegState(PegOperation.CreateSequence(new[] { 21, 0, 22 }), null),
+				new PegState(PegOperation.CreateSequence(new[] { new PegReference(21, null), new PegReference(0, null), new PegReference(22, null) }), null),
 				new PegState(PegOperation.CreateCharacterSet(new[] { new PegRange('(', '(') }), null),
 				new PegState(PegOperation.CreateCharacterSet(new[] { new PegRange(')', ')') }), null)
 			};
 
 			// Generator
-			var generator = new PegGenerator();
+			var generator = new CSharpGenerator(states);
 			string generatorCode;
 
 			using (var writer = new StringWriter())
 			{
-				generator.Generate(writer, states, 0);
+				generator.Generate(writer, 0);
 
 				generatorCode = writer.ToString();
 			}

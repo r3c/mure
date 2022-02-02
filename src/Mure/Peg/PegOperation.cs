@@ -7,43 +7,43 @@ namespace Mure.Peg
 	{
 		public static PegOperation CreateCharacterSet(IReadOnlyList<PegRange> ranges)
 		{
-			return new PegOperation(PegOperator.CharacterSet, Array.Empty<int>(), ranges);
+			return new PegOperation(PegOperator.CharacterSet, Array.Empty<PegReference>(), ranges);
 		}
 
-		public static PegOperation CreateChoice(IReadOnlyList<int> stateIndices)
+		public static PegOperation CreateChoice(IReadOnlyList<PegReference> references)
 		{
-			return new PegOperation(PegOperator.Choice, stateIndices, Array.Empty<PegRange>());
+			return new PegOperation(PegOperator.Choice, references, Array.Empty<PegRange>());
 		}
 
-		public static PegOperation CreateOneOrMore(int index)
+		public static PegOperation CreateOneOrMore(PegReference reference)
 		{
-			return new PegOperation(PegOperator.OneOrMore, new[] { index }, Array.Empty<PegRange>());
+			return new PegOperation(PegOperator.OneOrMore, new[] { reference }, Array.Empty<PegRange>());
 		}
 
-		public static PegOperation CreateSequence(IReadOnlyList<int> stateIndices)
+		public static PegOperation CreateSequence(IReadOnlyList<PegReference> references)
 		{
-			return new PegOperation(PegOperator.Sequence, stateIndices, Array.Empty<PegRange>());
+			return new PegOperation(PegOperator.Sequence, references, Array.Empty<PegRange>());
 		}
 
-		public static PegOperation CreateZeroOrMore(int index)
+		public static PegOperation CreateZeroOrMore(PegReference reference)
 		{
-			return new PegOperation(PegOperator.ZeroOrMore, new[] { index }, Array.Empty<PegRange>());
+			return new PegOperation(PegOperator.ZeroOrMore, new[] { reference }, Array.Empty<PegRange>());
 		}
 
-		public static PegOperation CreateZeroOrOne(int index)
+		public static PegOperation CreateZeroOrOne(PegReference reference)
 		{
-			return new PegOperation(PegOperator.ZeroOrOne, new[] { index }, Array.Empty<PegRange>());
+			return new PegOperation(PegOperator.ZeroOrOne, new[] { reference }, Array.Empty<PegRange>());
 		}
 
 		public readonly IReadOnlyList<PegRange> CharacterRanges;
 		public readonly PegOperator Operator;
-		public readonly IReadOnlyList<int> StateIndices;
+		public readonly IReadOnlyList<PegReference> References;
 
-		private PegOperation(PegOperator op, IReadOnlyList<int> stateIndices, IReadOnlyList<PegRange> characterRanges)
+		private PegOperation(PegOperator op, IReadOnlyList<PegReference> references, IReadOnlyList<PegRange> characterRanges)
 		{
 			CharacterRanges = characterRanges;
 			Operator = op;
-			StateIndices = stateIndices;
+			References = references;
 		}
 	}
 }

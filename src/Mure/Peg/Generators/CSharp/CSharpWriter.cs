@@ -2,13 +2,13 @@
 
 namespace Mure.Peg
 {
-	class PegWriter
+	class CSharpWriter
 	{
 		private readonly TextWriter _writer;
 
 		private int _indent;
 
-		public PegWriter(TextWriter writer, int indent)
+		public CSharpWriter(TextWriter writer, int indent)
 		{
 			_indent = indent;
 			_writer = writer;
@@ -16,6 +16,8 @@ namespace Mure.Peg
 
 		public void BeginBlock()
 		{
+			Indent();
+
 			_writer.WriteLine("{");
 
 			++_indent;
@@ -24,6 +26,8 @@ namespace Mure.Peg
 		public void EndBlock()
 		{
 			--_indent;
+
+			Indent();
 
 			_writer.WriteLine("}");
 		}
@@ -35,10 +39,15 @@ namespace Mure.Peg
 
 		public void WriteLine(string line)
 		{
-			for (var i = 0; i < _indent; ++i)
-				_writer.Write("    ");
+			Indent();
 
 			_writer.WriteLine(line);
+		}
+
+		private void Indent()
+		{
+			for (var i = 0; i < _indent; ++i)
+				_writer.Write("    ");
 		}
 	}
 }
