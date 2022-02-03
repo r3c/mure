@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using Mure.Peg.Generators.CSharp;
 
 namespace Mure.Peg.Generators
@@ -91,11 +92,15 @@ class PegStream
 
 class Parser
 {
-	public int? Parse(TextReader reader)
+	public PegOption<" + GetOperationType(startIndex) + @"> Parse(TextReader reader)
 	{
 		var stream = new PegStream(reader);
+		var result = " + GetOperationName(startIndex) + @"(stream, 0);
 
-		return " + GetOperationName(startIndex) + @"(stream, 0)?.Position;
+		if (!result.HasValue)
+			return " + GetCreateOptionEmpty(GetOperationType(startIndex)) + @";
+
+		return " + GetCreateOptionValue(GetOperationType(startIndex), "result.Value.Instance") + @";
 	}");
 
 			var pegWriter = new CSharpWriter(writer, 1);
@@ -165,20 +170,19 @@ class Parser
 
 		private void EmitCharacterSet(CSharpWriter writer, PegOperation operation, PegAction? action)
 		{
-			writer.WriteLine("var character = stream.ReadAt(position);");
-			writer.WriteBreak();
-			writer.WriteLine("if (");
-
-			var separator = string.Empty;
+			var buffer = new StringBuilder();
+			var next = string.Empty;
 
 			foreach (var range in operation.CharacterRanges)
 			{
-				writer.WriteLine($"{separator}(character >= {(int)range.Begin} && character <= {(int)range.End})");
+				buffer.Append($"{next}(character >= {(int)range.Begin} && character <= {(int)range.End})");
 
-				separator = "|| ";
+				next = " || ";
 			}
 
-			writer.WriteLine(")");
+			writer.WriteLine("var character = stream.ReadAt(position);");
+			writer.WriteBreak();
+			writer.WriteLine($"if ({buffer})");
 			writer.BeginBlock();
 
 			EmitReturn(writer, "position + 1", TypeCharacterSet(), "new string((char)character, 1)", action);
@@ -207,11 +211,22 @@ class Parser
 				writer.WriteLine($"if ({result}.HasValue)");
 				writer.BeginBlock();
 
-				var before = Enumerable.Range(0, i).Select(i => GetCreateOptionEmpty(GetOperationType(references[i].Index)));
-				var after = Enumerable.Range(i + 1, references.Count - i - 1).Select(i => GetCreateOptionEmpty(GetOperationType(references[i].Index)));
-				var values = before.Append(GetCreateOptionValue(GetOperationType(reference.Index), $"{result}.Value.Instance")).Concat(after);
+				string input;
 
-				EmitReturn(writer, $"{result}.Value.Position", TypeChoice(operation), $"({string.Join(", ", values)})", action);
+				if (references.Count < 2)
+				{
+					input = GetCreateOptionValue(GetOperationType(reference.Index), $"{result}.Value.Instance");
+				}
+				else
+				{
+					var before = Enumerable.Range(0, i).Select(i => GetCreateOptionEmpty(GetOperationType(references[i].Index)));
+					var after = Enumerable.Range(i + 1, references.Count - i - 1).Select(i => GetCreateOptionEmpty(GetOperationType(references[i].Index)));
+					var values = before.Append(GetCreateOptionValue(GetOperationType(reference.Index), $"{result}.Value.Instance")).Concat(after);
+
+					input = $"({string.Join(", ", values)})";
+				}
+
+				EmitReturn(writer, $"{result}.Value.Position", TypeChoice(operation), input, action);
 
 				writer.EndBlock();
 				writer.WriteBreak();
@@ -256,36 +271,37 @@ class Parser
 
 		private void EmitSequence(CSharpWriter writer, PegOperation operation, PegAction? action)
 		{
+			var elements = operation.References
+				.Select((reference, order) => new { Identifier = EscapeIdentifier(reference.Identifier ?? $"sequence{order}"), reference.Index })
+				.ToList();
+
 			var i = 0;
 
-			foreach (var reference in operation.References)
+			foreach (var element in elements)
 			{
 				var name = $"result{i++}";
 
-				writer.WriteLine($"var {name} = {GetOperationName(reference.Index)}(stream, position);");
+				writer.WriteLine($"var {name} = {GetOperationName(element.Index)}(stream, position);");
 				writer.WriteBreak();
 				writer.WriteLine($"if (!{name}.HasValue)");
 				writer.BeginBlock();
 				writer.WriteLine($"return null;");
 				writer.EndBlock();
-
-				if (reference.Identifier is not null)
-				{
-					writer.WriteBreak();
-					writer.WriteLine($"var {EscapeIdentifier(reference.Identifier)} = {name}.Value.Instance;");
-				}
-
+				writer.WriteBreak();
+				writer.WriteLine($"var {element.Identifier} = {name}.Value.Instance;");
 				writer.WriteBreak();
 				writer.WriteLine($"position = {name}.Value.Position;");
 				writer.WriteBreak();
 			}
 
-			var identifiers = operation.References
-				.Where(reference => reference.Identifier is not null)
-				.Select(reference => EscapeIdentifier(reference.Identifier!))
-				.ToList();
+			string input;
 
-			var input = identifiers.Count > 0 ? $"({string.Join(", ", identifiers)})" : "false";
+			if (elements.Count < 1)
+				input = "false";
+			else if (elements.Count < 2)
+				input = elements[0].Identifier;
+			else
+				input = $"({string.Join(", ", elements.Select(element => element.Identifier))})";
 
 			EmitReturn(writer, "position", TypeSequence(operation), input, action);
 		}
@@ -343,10 +359,20 @@ class Parser
 		private string TypeChoice(PegOperation operation)
 		{
 			var elements = operation.References
-				.Select((reference, order) => $"PegOption<{GetOperationType(reference.Index)}> {EscapeIdentifier(reference.Identifier ?? $"choice{order}")}")
+				.Select((reference, order) => new
+				{
+					Identifier = EscapeIdentifier(reference.Identifier ?? $"choice{order}"),
+					Type = $"PegOption<{GetOperationType(reference.Index)}>"
+				})
 				.ToList();
 
-			return elements.Count > 0 ? $"({string.Join(", ", elements)})" : "bool";
+			if (elements.Count < 1)
+				return "bool";
+
+			if (elements.Count < 2)
+				return elements[0].Type;
+
+			return $"({string.Join(", ", elements.Select(element => $"{element.Type} {element.Identifier}"))})";
 		}
 
 		private string TypeOneOrMore(PegOperation operation, bool concrete)
@@ -357,11 +383,20 @@ class Parser
 		private string TypeSequence(PegOperation operation)
 		{
 			var elements = operation.References
-				.Where(reference => reference.Identifier is not null)
-				.Select(reference => $"{GetOperationType(reference.Index)} {EscapeIdentifier(reference.Identifier!)}")
+				.Select((reference, order) => new
+				{
+					Identifier = EscapeIdentifier(reference.Identifier ?? $"sequence{order}"),
+					Type = GetOperationType(reference.Index)
+				})
 				.ToList();
 
-			return elements.Count > 0 ? $"({string.Join(", ", elements)})" : "bool";
+			if (elements.Count < 1)
+				return "bool";
+
+			if (elements.Count < 2)
+				return elements[0].Type;
+
+			return $"({string.Join(", ", elements.Select(element => $"{element.Type} {element.Identifier}"))})";
 		}
 
 		private string TypeZeroOrMore(PegOperation operation, bool concrete)
