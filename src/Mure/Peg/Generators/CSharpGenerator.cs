@@ -6,7 +6,7 @@ using Mure.Peg.Generators.CSharp;
 
 namespace Mure.Peg.Generators
 {
-	class CSharpGenerator : IGenerator
+	class CSharpGenerator : LanguageGenerator<CSharpWriter>
 	{
 		public const string LanguageName = "csharp";
 
@@ -38,16 +38,24 @@ namespace Mure.Peg.Generators
 			)
 		};
 
-		private readonly IReadOnlyList<PegState> _states;
-
-		public CSharpGenerator(IReadOnlyList<PegState> states)
+		public CSharpGenerator(IReadOnlyList<PegState> states) :
+			base(LanguageName, states)
 		{
-			_states = states;
 		}
 
-		public void Generate(TextWriter writer, int startIndex)
+		protected override CSharpWriter CreateContext(TextWriter writer)
 		{
-			writer.WriteLine(@"// Generated code
+			return new CSharpWriter(writer);
+		}
+
+		protected override void EmitFooter(CSharpWriter context)
+		{
+			context.EndBlock();
+		}
+
+		protected override void EmitHeader(CSharpWriter context, int startIndex)
+		{
+			context.WriteLine(@"// Generated code
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -90,38 +98,34 @@ class PegStream
 	}
 }
 
-class Parser
+class Parser");
+
+			context.BeginBlock();
+
+			context.WriteLine(@"public PegOption<" + GetOperationType(startIndex) + @"> Parse(TextReader reader)
 {
-	public PegOption<" + GetOperationType(startIndex) + @"> Parse(TextReader reader)
-	{
-		var stream = new PegStream(reader);
-		var result = " + GetOperationName(startIndex) + @"(stream, 0);
+	var stream = new PegStream(reader);
+	var result = " + GetOperationName(startIndex) + @"(stream, 0);
 
-		if (!result.HasValue)
-			return " + GetCreateOptionEmpty(GetOperationType(startIndex)) + @";
+	if (!result.HasValue)
+		return " + GetCreateOptionEmpty(GetOperationType(startIndex)) + @";
 
-		return " + GetCreateOptionValue(GetOperationType(startIndex), "result.Value.Instance") + @";
-	}");
-
-			var pegWriter = new CSharpWriter(writer, 1);
-
-			for (var i = 0; i < _states.Count; ++i)
-			{
-				var state = _states[i];
-				var operation = state.Operation;
-				var emitter = Emitters[(int)operation.Operator];
-
-				pegWriter.WriteBreak();
-				pegWriter.WriteLine($"private PegResult<{GetOperationType(i)}>? {GetOperationName(i)}(PegStream stream, int position)");
-				pegWriter.BeginBlock();
-
-				emitter.Write(this, pegWriter, operation, state.Actions.TryGetValue(LanguageName, out var action) ? action : null);
-
-				pegWriter.EndBlock();
-			}
-
-			writer.Write(@"
+	return " + GetCreateOptionValue(GetOperationType(startIndex), "result.Value.Instance") + @";
 }");
+		}
+
+		protected override void EmitState(CSharpWriter context, int stateIndex)
+		{
+			var (operation, action) = GetState(stateIndex);
+			var emitter = Emitters[(int)operation.Operator];
+
+			context.WriteBreak();
+			context.WriteLine($"private PegResult<{GetOperationType(stateIndex)}>? {GetOperationName(stateIndex)}(PegStream stream, int position)");
+			context.BeginBlock();
+
+			emitter.Write(this, context, operation, action);
+
+			context.EndBlock();
 		}
 
 		private static void EmitReturn(CSharpWriter writer, string position, string sourceType, string input, PegAction? action)
@@ -155,14 +159,13 @@ class Parser
 			return $"State{index}";
 		}
 
-		private string GetOperationType(int index)
+		private string GetOperationType(int stateIndex)
 		{
-			var state = _states[index];
+			var (operation, action) = GetState(stateIndex);
 
-			if (state.Actions.TryGetValue(LanguageName, out var action))
-				return action.Type;
+			if (action.HasValue)
+				return action.Value.Type;
 
-			var operation = state.Operation;
 			var emitter = Emitters[(int)operation.Operator];
 
 			return emitter.Infer(this, operation);

@@ -8,9 +8,9 @@ namespace Mure.Peg
 
 		private int _indent;
 
-		public CSharpWriter(TextWriter writer, int indent)
+		public CSharpWriter(TextWriter writer)
 		{
-			_indent = indent;
+			_indent = 0;
 			_writer = writer;
 		}
 
