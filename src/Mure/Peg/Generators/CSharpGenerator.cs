@@ -21,7 +21,7 @@ namespace Mure.Peg.Generators
 				(generator, writer, operation, action) => generator.EmitChoice(writer, operation, action)
 			),
 			new CSharpEmitter(
-				(generator, operation) => generator.TypeOneOrMore(operation, false),
+				(generator, operation) => generator.TypeOneOrMore(operation),
 				(generator, writer, operation, action) => generator.EmitOneOrMore(writer, operation, action)
 			),
 			new CSharpEmitter(
@@ -29,7 +29,7 @@ namespace Mure.Peg.Generators
 				(generator, writer, operation, action) => generator.EmitSequence(writer, operation, action)
 			),
 			new CSharpEmitter(
-				(generator, operation) => generator.TypeZeroOrMore(operation, false),
+				(generator, operation) => generator.TypeZeroOrMore(operation),
 				(generator, writer, operation, action) => generator.EmitZeroOrMore(writer, operation, action)
 			),
 			new CSharpEmitter(
@@ -144,6 +144,11 @@ class Parser");
 			return identifier; // FIXME
 		}
 
+		private static string GetCreateList(string type)
+		{
+			return $"new List<{type}>()";
+		}
+
 		private static string GetCreateOptionEmpty(string type)
 		{
 			return $"new PegOption<{type}> {{ Defined = false }}";
@@ -152,6 +157,27 @@ class Parser");
 		private static string GetCreateOptionValue(string type, string value)
 		{
 			return $"new PegOption<{type}> {{ Defined = true, Value = {value} }}";
+		}
+
+		private static string GetCreateTuple(IReadOnlyList<string> values)
+		{
+			if (values.Count < 1)
+				return "ValueTuple.Create()";
+			else if (values.Count < 2)
+				return values[0];
+
+			return $"({string.Join(", ", values)})";
+		}
+
+		private static string GetTypeTuple(IReadOnlyList<NamedType> fields)
+		{
+			if (fields.Count < 1)
+				return "ValueTuple";
+
+			if (fields.Count < 2)
+				return fields[0].Type;
+
+			return $"({string.Join(", ", fields.Select(element => $"{element.Type} {EscapeIdentifier(element.Identifier)}"))})";
 		}
 
 		private static string GetOperationName(int index)
@@ -197,15 +223,10 @@ class Parser");
 
 		private void EmitChoice(CSharpWriter writer, PegOperation operation, PegAction? action)
 		{
-			var identifiers = operation.References
-				.Select(reference => EscapeIdentifier(reference.Identifier ?? $"choice{reference.Index}"))
-				.ToList();
-
 			var references = operation.References;
 
 			for (var i = 0; i < references.Count; ++i)
 			{
-				var identifier = identifiers[i];
 				var reference = references[i];
 				var result = EscapeIdentifier($"result{i}");
 
@@ -214,22 +235,14 @@ class Parser");
 				writer.WriteLine($"if ({result}.HasValue)");
 				writer.BeginBlock();
 
-				string input;
+				var before = Enumerable.Range(0, i).Select(i => GetCreateOptionEmpty(GetOperationType(references[i].Index)));
+				var after = Enumerable.Range(i + 1, references.Count - i - 1).Select(i => GetCreateOptionEmpty(GetOperationType(references[i].Index)));
+				var values = before.Append(GetCreateOptionValue(GetOperationType(reference.Index), $"{result}.Value.Instance")).Concat(after).ToList();
 
-				if (references.Count < 2)
-				{
-					input = GetCreateOptionValue(GetOperationType(reference.Index), $"{result}.Value.Instance");
-				}
-				else
-				{
-					var before = Enumerable.Range(0, i).Select(i => GetCreateOptionEmpty(GetOperationType(references[i].Index)));
-					var after = Enumerable.Range(i + 1, references.Count - i - 1).Select(i => GetCreateOptionEmpty(GetOperationType(references[i].Index)));
-					var values = before.Append(GetCreateOptionValue(GetOperationType(reference.Index), $"{result}.Value.Instance")).Concat(after);
+				var input = GetCreateTuple(values);
+				var type = TypeChoice(operation);
 
-					input = $"({string.Join(", ", values)})";
-				}
-
-				EmitReturn(writer, $"{result}.Value.Position", TypeChoice(operation), input, action);
+				EmitReturn(writer, $"{result}.Value.Position", type, input, action);
 
 				writer.EndBlock();
 				writer.WriteBreak();
@@ -249,7 +262,7 @@ class Parser");
 			writer.WriteLine("return null;");
 			writer.EndBlock();
 			writer.WriteBreak();
-			writer.WriteLine($"var instances = new {TypeOneOrMore(operation, true)}();");
+			writer.WriteLine($"var instances = {GetCreateList(GetOperationType(operation.References[0].Index))};");
 			writer.WriteBreak();
 			writer.WriteLine("instances.Add(first.Value.Instance);");
 			writer.WriteBreak();
@@ -262,7 +275,7 @@ class Parser");
 			writer.WriteLine("if (!next.HasValue)");
 			writer.BeginBlock();
 
-			EmitReturn(writer, "position", TypeOneOrMore(operation, false), "instances", action);
+			EmitReturn(writer, "position", TypeOneOrMore(operation), "instances", action);
 
 			writer.EndBlock();
 			writer.WriteBreak();
@@ -297,23 +310,17 @@ class Parser");
 				writer.WriteBreak();
 			}
 
-			string input;
+			var input = GetCreateTuple(elements.Select(element => element.Identifier).ToList());
+			var type = TypeSequence(operation);
 
-			if (elements.Count < 1)
-				input = "false";
-			else if (elements.Count < 2)
-				input = elements[0].Identifier;
-			else
-				input = $"({string.Join(", ", elements.Select(element => element.Identifier))})";
-
-			EmitReturn(writer, "position", TypeSequence(operation), input, action);
+			EmitReturn(writer, "position", type, input, action);
 		}
 
 		private void EmitZeroOrMore(CSharpWriter writer, PegOperation operation, PegAction? action)
 		{
 			var index = operation.References[0].Index;
 
-			writer.WriteLine($"var instances = new {TypeZeroOrMore(operation, true)}();");
+			writer.WriteLine($"var instances = {GetCreateList(GetOperationType(operation.References[0].Index))};");
 			writer.WriteBreak();
 			writer.WriteLine("while (true)");
 			writer.BeginBlock();
@@ -322,7 +329,7 @@ class Parser");
 			writer.WriteLine("if (!next.HasValue)");
 			writer.BeginBlock();
 
-			EmitReturn(writer, "position", TypeZeroOrMore(operation, false), "instances", action);
+			EmitReturn(writer, "position", TypeZeroOrMore(operation), "instances", action);
 
 			writer.EndBlock();
 			writer.WriteBreak();
@@ -361,55 +368,43 @@ class Parser");
 
 		private string TypeChoice(PegOperation operation)
 		{
-			var elements = operation.References
-				.Select((reference, order) => new
-				{
-					Identifier = EscapeIdentifier(reference.Identifier ?? $"choice{order}"),
-					Type = $"PegOption<{GetOperationType(reference.Index)}>"
-				})
-				.ToList();
-
-			if (elements.Count < 1)
-				return "bool";
-
-			if (elements.Count < 2)
-				return elements[0].Type;
-
-			return $"({string.Join(", ", elements.Select(element => $"{element.Type} {element.Identifier}"))})";
+			return GetTypeTuple(operation.References
+				.Select((reference, order) => new NamedType($"PegOption<{GetOperationType(reference.Index)}>", reference.Identifier ?? $"choice{order}"))
+				.ToList());
 		}
 
-		private string TypeOneOrMore(PegOperation operation, bool concrete)
+		private string TypeOneOrMore(PegOperation operation)
 		{
-			return TypeZeroOrMore(operation, concrete);
+			return TypeZeroOrMore(operation);
 		}
 
 		private string TypeSequence(PegOperation operation)
 		{
-			var elements = operation.References
-				.Select((reference, order) => new
-				{
-					Identifier = EscapeIdentifier(reference.Identifier ?? $"sequence{order}"),
-					Type = GetOperationType(reference.Index)
-				})
-				.ToList();
-
-			if (elements.Count < 1)
-				return "bool";
-
-			if (elements.Count < 2)
-				return elements[0].Type;
-
-			return $"({string.Join(", ", elements.Select(element => $"{element.Type} {element.Identifier}"))})";
+			return GetTypeTuple(operation.References
+				.Select((reference, order) => new NamedType(GetOperationType(reference.Index), reference.Identifier ?? $"sequence{order}"))
+				.ToList());
 		}
 
-		private string TypeZeroOrMore(PegOperation operation, bool concrete)
+		private string TypeZeroOrMore(PegOperation operation)
 		{
-			return $"{(concrete ? "List" : "IReadOnlyList")}<{GetOperationType(operation.References[0].Index)}>";
+			return $"IReadOnlyList<{GetOperationType(operation.References[0].Index)}>";
 		}
 
 		private string TypeZeroOrOne(PegOperation operation)
 		{
 			return $"PegOption<{GetOperationType(operation.References[0].Index)}>";
+		}
+
+		private readonly struct NamedType
+		{
+			public readonly string Identifier;
+			public readonly string Type;
+
+			public NamedType(string type, string identifier)
+			{
+				Identifier = identifier;
+				Type = type;
+			}
 		}
 	}
 }
