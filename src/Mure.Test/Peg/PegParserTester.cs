@@ -19,7 +19,7 @@ namespace Mure.Test.Peg
 
 			var states = new PegState[]
 			{
-				new PegState(PegOperation.CreateSequence(new[] { new PegReference(1, null) }), noAction),
+				new PegState(PegOperation.CreateSequence(new[] { new PegReference(1, "Result") }), CSharpAction("int", "return input.Result;")),
 				new PegState(PegOperation.CreateSequence(new[] { new PegReference(7, "First"), new PegReference(2, "AdditiveTerms") }), CSharpAction("int", "var result = input.First; foreach (var term in input.AdditiveTerms) result = term.Item1 ? result - term.Item2 : result + term.Item2; return result;")), // 1: sum
 				new PegState(PegOperation.CreateZeroOrMore(new PegReference(3, null)), noAction),
 				new PegState(PegOperation.CreateSequence(new[] { new PegReference(4, "Sign"), new PegReference(7, "Value") }), CSharpAction("(bool, int)", "return (input.Sign, input.Value);")),

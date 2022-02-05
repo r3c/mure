@@ -161,21 +161,26 @@ class Parser");
 
 		private static string GetCreateTuple(IReadOnlyList<string> values)
 		{
+			// Workaround: C# doesn't support literal 0-value tuples yet
 			if (values.Count < 1)
 				return "ValueTuple.Create()";
-			else if (values.Count < 2)
-				return values[0];
+
+			// Workaround: C# doesn't support literal 1-value named tuples yet
+			if (values.Count < 2)
+				return $"({values[0]}, false)";
 
 			return $"({string.Join(", ", values)})";
 		}
 
 		private static string GetTypeTuple(IReadOnlyList<NamedType> fields)
 		{
+			// Workaround: C# doesn't support literal 0-value tuples yet
 			if (fields.Count < 1)
 				return "ValueTuple";
 
+			// Workaround: C# doesn't support literal 1-value named tuples yet
 			if (fields.Count < 2)
-				return fields[0].Type;
+				return $"({fields[0].Type} {EscapeIdentifier(fields[0].Identifier)}, bool _)";
 
 			return $"({string.Join(", ", fields.Select(element => $"{element.Type} {EscapeIdentifier(element.Identifier)}"))})";
 		}
