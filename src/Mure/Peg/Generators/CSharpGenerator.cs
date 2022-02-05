@@ -172,7 +172,17 @@ class Parser");
 			return $"({string.Join(", ", values)})";
 		}
 
-		private static string GetTypeTuple(IReadOnlyList<NamedType> fields)
+		private static string GetTypeListOf(string type)
+		{
+			return $"IReadOnlyList<{type}>";
+		}
+
+		private static string GetTypeOptionOf(string type)
+		{
+			return $"PegOption<{type}>";
+		}
+
+		private static string GetTypeTupleOf(IReadOnlyList<NamedType> fields)
 		{
 			// Workaround: C# doesn't support literal 0-value tuples yet
 			if (fields.Count < 1)
@@ -373,8 +383,8 @@ class Parser");
 
 		private string TypeChoice(PegOperation operation)
 		{
-			return GetTypeTuple(operation.References
-				.Select((reference, order) => new NamedType($"PegOption<{GetOperationType(reference.Index)}>", reference.Identifier ?? $"choice{order}"))
+			return GetTypeTupleOf(operation.References
+				.Select((reference, order) => new NamedType(GetTypeOptionOf(GetOperationType(reference.Index)), reference.Identifier ?? $"choice{order}"))
 				.ToList());
 		}
 
@@ -385,19 +395,19 @@ class Parser");
 
 		private string TypeSequence(PegOperation operation)
 		{
-			return GetTypeTuple(operation.References
+			return GetTypeTupleOf(operation.References
 				.Select((reference, order) => new NamedType(GetOperationType(reference.Index), reference.Identifier ?? $"sequence{order}"))
 				.ToList());
 		}
 
 		private string TypeZeroOrMore(PegOperation operation)
 		{
-			return $"IReadOnlyList<{GetOperationType(operation.References[0].Index)}>";
+			return GetTypeListOf(GetOperationType(operation.References[0].Index));
 		}
 
 		private string TypeZeroOrOne(PegOperation operation)
 		{
-			return $"PegOption<{GetOperationType(operation.References[0].Index)}>";
+			return GetTypeOptionOf(GetOperationType(operation.References[0].Index));
 		}
 
 		private readonly struct NamedType
