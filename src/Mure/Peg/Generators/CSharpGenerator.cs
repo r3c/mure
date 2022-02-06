@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -14,27 +15,27 @@ namespace Mure.Peg.Generators
 		{
 			new CSharpEmitter(
 				(generator, operation) => generator.TypeCharacterSet(),
-				(generator, writer, operation, action) => generator.EmitCharacterSet(writer, operation, action)
+				(generator, writer, operation, returnType, converterBody) => generator.EmitCharacterSet(writer, operation, returnType, converterBody)
 			),
 			new CSharpEmitter(
 				(generator, operation) => generator.TypeChoice(operation),
-				(generator, writer, operation, action) => generator.EmitChoice(writer, operation, action)
+				(generator, writer, operation, returnType, converterBody) => generator.EmitChoice(writer, operation, returnType, converterBody)
 			),
 			new CSharpEmitter(
 				(generator, operation) => generator.TypeOneOrMore(operation),
-				(generator, writer, operation, action) => generator.EmitOneOrMore(writer, operation, action)
+				(generator, writer, operation, returnType, converterBody) => generator.EmitOneOrMore(writer, operation, returnType, converterBody)
 			),
 			new CSharpEmitter(
 				(generator, operation) => generator.TypeSequence(operation),
-				(generator, writer, operation, action) => generator.EmitSequence(writer, operation, action)
+				(generator, writer, operation, returnType, converterBody) => generator.EmitSequence(writer, operation, returnType, converterBody)
 			),
 			new CSharpEmitter(
 				(generator, operation) => generator.TypeZeroOrMore(operation),
-				(generator, writer, operation, action) => generator.EmitZeroOrMore(writer, operation, action)
+				(generator, writer, operation, returnType, converterBody) => generator.EmitZeroOrMore(writer, operation, returnType, converterBody)
 			),
 			new CSharpEmitter(
 				(generator, operation) => generator.TypeZeroOrOne(operation),
-				(generator, writer, operation, action) => generator.EmitZeroOrOne(writer, operation, action)
+				(generator, writer, operation, returnType, converterBody) => generator.EmitZeroOrOne(writer, operation, returnType, converterBody)
 			)
 		};
 
@@ -103,40 +104,30 @@ class Parser");
 			context.BeginBlock();
 
 			context.WriteLine(@"public PegOption<" + GetOperationType(startIndex) + @"> Parse(TextReader reader)
-{
-	var stream = new PegStream(reader);
-	var result = " + GetOperationName(startIndex) + @"(stream, 0);
+	{
+		var stream = new PegStream(reader);
+		var result = " + GetOperationName(startIndex) + @"(stream, 0);
 
-	if (!result.HasValue)
-		return " + GetCreateOptionEmpty(GetOperationType(startIndex)) + @";
+		if (!result.HasValue)
+			return " + GetCreateOptionEmpty(GetOperationType(startIndex)) + @";
 
-	return " + GetCreateOptionValue(GetOperationType(startIndex), "result.Value.Instance") + @";
-}");
+		return " + GetCreateOptionValue(GetOperationType(startIndex), "result.Value.Instance") + @";
+	}");
 		}
 
 		protected override void EmitState(CSharpWriter context, int stateIndex)
 		{
 			var (operation, action) = GetState(stateIndex);
 			var emitter = Emitters[(int)operation.Operator];
+			var returnType = GetOperationType(stateIndex);
 
 			context.WriteBreak();
-			context.WriteLine($"private PegResult<{GetOperationType(stateIndex)}>? {GetOperationName(stateIndex)}(PegStream stream, int position)");
+			context.WriteLine($"private PegResult<{returnType}>? {GetOperationName(stateIndex)}(PegStream stream, int position)");
 			context.BeginBlock();
 
-			emitter.Write(this, context, operation, action);
+			emitter.Write(this, context, operation, action.HasValue ? action.Value.Type : returnType, action.HasValue ? $"{{ {action.Value.Body} }}" : null);
 
 			context.EndBlock();
-		}
-
-		private static void EmitReturn(CSharpWriter writer, string position, string sourceType, string input, PegAction? action)
-		{
-			if (action.HasValue)
-			{
-				writer.WriteLine($"Func<{sourceType}, {action.Value.Type}> converter = (input) => {{ {action.Value.Body} }};");
-				writer.WriteLine($"return new PegResult<{action.Value.Type}>(converter({input}), {position});");
-			}
-			else
-				writer.WriteLine($"return new PegResult<{sourceType}>({input}, {position});");
 		}
 
 		private static string EscapeIdentifier(string identifier)
@@ -182,7 +173,7 @@ class Parser");
 			return $"PegOption<{type}>";
 		}
 
-		private static string GetTypeTupleOf(IReadOnlyList<NamedType> fields)
+		private static string GetTypeTupleOf(IReadOnlyList<Symbol> fields)
 		{
 			// Workaround: C# doesn't support literal 0-value tuples yet
 			if (fields.Count < 1)
@@ -212,8 +203,9 @@ class Parser");
 			return emitter.Infer(this, operation);
 		}
 
-		private void EmitCharacterSet(CSharpWriter writer, PegOperation operation, PegAction? action)
+		private void EmitCharacterSet(CSharpWriter writer, PegOperation operation, string returnType, string? converterBody)
 		{
+			var capture = new Symbol(TypeCharacterSet(), "capture");
 			var buffer = new StringBuilder();
 			var next = string.Empty;
 
@@ -224,60 +216,82 @@ class Parser");
 				next = " || ";
 			}
 
+			EmitDeclareConverter(writer, new[] { capture }, returnType, converterBody ?? capture.Identifier);
+
 			writer.WriteLine("var character = stream.ReadAt(position);");
 			writer.WriteBreak();
 			writer.WriteLine($"if ({buffer})");
 			writer.BeginBlock();
-
-			EmitReturn(writer, "position + 1", TypeCharacterSet(), "new string((char)character, 1)", action);
-
+			writer.WriteLine($"return new PegResult<{returnType}>(converter(new string((char)character, 1)), position + 1);");
 			writer.EndBlock();
 			writer.WriteBreak();
 			writer.WriteLine("return null;");
 		}
 
-		private void EmitChoice(CSharpWriter writer, PegOperation operation, PegAction? action)
+		private void EmitDeclareConverter(CSharpWriter writer, IReadOnlyList<Symbol> arguments, string returnType, string converterBody)
+		{
+			writer.WriteLine($"Func<{string.Join(", ", arguments.Select(namedType => namedType.Type).Append(returnType))}> converter = ({string.Join(", ", arguments.Select(namedType => $"{namedType.Type} {namedType.Identifier}"))}) => {converterBody};");
+		}
+
+		private void EmitChoice(CSharpWriter writer, PegOperation operation, string returnType, string? converterBody)
 		{
 			var references = operation.References;
 
-			for (var i = 0; i < references.Count; ++i)
+			var defaultValues = references
+				.Select((reference, index) => new
+				{
+					Captured = reference.Identifier is not null,
+					Order = index,
+					Symbol = GetCreateOptionEmpty(GetOperationType(reference.Index))
+				})
+				.Where(tuple => tuple.Captured)
+				.ToList();
+
+			var choices = references
+				.Where(reference => reference.Identifier is not null)
+				.Select(reference => new Symbol(GetTypeOptionOf(GetOperationType(reference.Index)), reference.Identifier!))
+				.ToList();
+
+			EmitDeclareConverter(writer, choices, returnType, converterBody ?? GetCreateTuple(choices.Select(namedType => namedType.Identifier).ToList()));
+
+			writer.WriteBreak();
+
+			var i = 0;
+
+			foreach (var reference in references)
 			{
-				var reference = references[i];
 				var result = EscapeIdentifier($"result{i}");
+				var values = defaultValues.Select(tuple => tuple.Order == i ? GetCreateOptionValue(GetOperationType(reference.Index), $"{result}.Value.Instance") : tuple.Symbol);
 
 				writer.WriteLine($"var {result} = {GetOperationName(reference.Index)}(stream, position);");
 				writer.WriteBreak();
 				writer.WriteLine($"if ({result}.HasValue)");
 				writer.BeginBlock();
-
-				var before = Enumerable.Range(0, i).Select(i => GetCreateOptionEmpty(GetOperationType(references[i].Index)));
-				var after = Enumerable.Range(i + 1, references.Count - i - 1).Select(i => GetCreateOptionEmpty(GetOperationType(references[i].Index)));
-				var values = before.Append(GetCreateOptionValue(GetOperationType(reference.Index), $"{result}.Value.Instance")).Concat(after).ToList();
-
-				var input = GetCreateTuple(values);
-				var type = TypeChoice(operation);
-
-				EmitReturn(writer, $"{result}.Value.Position", type, input, action);
-
+				writer.WriteLine($"return new PegResult<{returnType}>(converter({string.Join(", ", values)}), {result}.Value.Position);");
 				writer.EndBlock();
 				writer.WriteBreak();
+
+				++i;
 			}
 
 			writer.WriteLine("return null;");
 		}
 
-		private void EmitOneOrMore(CSharpWriter writer, PegOperation operation, PegAction? action)
+		private void EmitOneOrMore(CSharpWriter writer, PegOperation operation, string returnType, string? converterBody)
 		{
-			var index = operation.References[0].Index;
+			var reference = operation.References[0];
+			var sequence = new Symbol(TypeOneOrMore(operation), reference.Identifier ?? "elements");
 
-			writer.WriteLine($"var first = {GetOperationName(index)}(stream, position);");
+			EmitDeclareConverter(writer, new[] { sequence }, returnType, converterBody ?? sequence.Identifier);
+
+			writer.WriteLine($"var first = {GetOperationName(reference.Index)}(stream, position);");
 			writer.WriteBreak();
 			writer.WriteLine("if (!first.HasValue)");
 			writer.BeginBlock();
 			writer.WriteLine("return null;");
 			writer.EndBlock();
 			writer.WriteBreak();
-			writer.WriteLine($"var instances = {GetCreateList(GetOperationType(operation.References[0].Index))};");
+			writer.WriteLine($"var instances = {GetCreateList(GetOperationType(reference.Index))};");
 			writer.WriteBreak();
 			writer.WriteLine("instances.Add(first.Value.Instance);");
 			writer.WriteBreak();
@@ -285,13 +299,11 @@ class Parser");
 			writer.WriteBreak();
 			writer.WriteLine("while (true)"); // FIXME: similar to EmitZeroOrMore
 			writer.BeginBlock();
-			writer.WriteLine($"var next = {GetOperationName(index)}(stream, position);");
+			writer.WriteLine($"var next = {GetOperationName(reference.Index)}(stream, position);");
 			writer.WriteBreak();
 			writer.WriteLine("if (!next.HasValue)");
 			writer.BeginBlock();
-
-			EmitReturn(writer, "position", TypeOneOrMore(operation), "instances", action);
-
+			writer.WriteLine($"return new PegResult<{returnType}>(converter(instances), position);");
 			writer.EndBlock();
 			writer.WriteBreak();
 			writer.WriteLine("instances.Add(next.Value.Instance);");
@@ -300,52 +312,59 @@ class Parser");
 			writer.EndBlock();
 		}
 
-		private void EmitSequence(CSharpWriter writer, PegOperation operation, PegAction? action)
+		private void EmitSequence(CSharpWriter writer, PegOperation operation, string returnType, string? converterBody)
 		{
-			var elements = operation.References
-				.Select((reference, order) => new { Identifier = EscapeIdentifier(reference.Identifier ?? $"sequence{order}"), reference.Index })
+			var references = operation.References;
+			var elements = references
+				.Where(reference => reference.Identifier is not null)
+				.Select(reference => new Symbol(GetOperationType(reference.Index), reference.Identifier!))
 				.ToList();
 
-			var i = 0;
+			EmitDeclareConverter(writer, elements, returnType, converterBody ?? GetCreateTuple(elements.Select(namedType => namedType.Identifier).ToList()));
 
-			foreach (var element in elements)
+			var fragments = references
+				.Select((reference, index) => new
+				{
+					Captured = reference.Identifier is not null,
+					reference.Index,
+					Symbol = $"fragment{index++}"
+				})
+				.ToList();
+
+			foreach (var fragment in fragments)
 			{
-				var name = $"result{i++}";
-
-				writer.WriteLine($"var {name} = {GetOperationName(element.Index)}(stream, position);");
+				writer.WriteLine($"var {fragment.Symbol} = {GetOperationName(fragment.Index)}(stream, position);");
 				writer.WriteBreak();
-				writer.WriteLine($"if (!{name}.HasValue)");
+				writer.WriteLine($"if (!{fragment.Symbol}.HasValue)");
 				writer.BeginBlock();
 				writer.WriteLine($"return null;");
 				writer.EndBlock();
 				writer.WriteBreak();
-				writer.WriteLine($"var {element.Identifier} = {name}.Value.Instance;");
-				writer.WriteBreak();
-				writer.WriteLine($"position = {name}.Value.Position;");
+				writer.WriteLine($"position = {fragment.Symbol}.Value.Position;");
 				writer.WriteBreak();
 			}
 
-			var input = GetCreateTuple(elements.Select(element => element.Identifier).ToList());
-			var type = TypeSequence(operation);
+			var values = fragments.Where(fragment => fragment.Captured).Select(fragment => $"{fragment.Symbol}.Value.Instance");
 
-			EmitReturn(writer, "position", type, input, action);
+			writer.WriteLine($"return new PegResult<{returnType}>(converter({string.Join(", ", values)}), position);");
 		}
 
-		private void EmitZeroOrMore(CSharpWriter writer, PegOperation operation, PegAction? action)
+		private void EmitZeroOrMore(CSharpWriter writer, PegOperation operation, string returnType, string? converterBody)
 		{
-			var index = operation.References[0].Index;
+			var reference = operation.References[0];
+			var sequence = new Symbol(TypeZeroOrMore(operation), reference.Identifier ?? "elements");
 
-			writer.WriteLine($"var instances = {GetCreateList(GetOperationType(operation.References[0].Index))};");
+			EmitDeclareConverter(writer, new[] { sequence }, returnType, converterBody ?? sequence.Identifier);
+
+			writer.WriteLine($"var instances = {GetCreateList(GetOperationType(reference.Index))};");
 			writer.WriteBreak();
 			writer.WriteLine("while (true)");
 			writer.BeginBlock();
-			writer.WriteLine($"var next = {GetOperationName(index)}(stream, position);");
+			writer.WriteLine($"var next = {GetOperationName(reference.Index)}(stream, position);");
 			writer.WriteBreak();
 			writer.WriteLine("if (!next.HasValue)");
 			writer.BeginBlock();
-
-			EmitReturn(writer, "position", TypeZeroOrMore(operation), "instances", action);
-
+			writer.WriteLine($"return new PegResult<{returnType}>(converter(instances), position);");
 			writer.EndBlock();
 			writer.WriteBreak();
 			writer.WriteLine("instances.Add(next.Value.Instance);");
@@ -354,12 +373,15 @@ class Parser");
 			writer.EndBlock();
 		}
 
-		private void EmitZeroOrOne(CSharpWriter writer, PegOperation operation, PegAction? action)
+		private void EmitZeroOrOne(CSharpWriter writer, PegOperation operation, string returnType, string? converterBody)
 		{
-			var index = operation.References[0].Index;
-			var type = TypeZeroOrOne(operation);
+			var reference = operation.References[0];
+			var option = new Symbol(TypeZeroOrOne(operation), reference.Identifier ?? "option");
+			var type = GetTypeOptionOf(GetOperationType(reference.Index));
 
-			writer.WriteLine($"var one = {GetOperationName(index)}(stream, position);");
+			EmitDeclareConverter(writer, new[] { option }, returnType, converterBody ?? option.Identifier);
+
+			writer.WriteLine($"var one = {GetOperationName(reference.Index)}(stream, position);");
 			writer.WriteLine($"{type} instance;");
 			writer.WriteBreak();
 			writer.WriteLine("if (one.HasValue)");
@@ -372,8 +394,7 @@ class Parser");
 			writer.WriteLine($"instance = new {type} {{ Defined = false }};");
 			writer.EndBlock();
 			writer.WriteBreak();
-
-			EmitReturn(writer, "position", type, "instance", action);
+			writer.WriteLine($"return new PegResult<{returnType}>(converter(instance), position);");
 		}
 
 		private string TypeCharacterSet()
@@ -384,7 +405,8 @@ class Parser");
 		private string TypeChoice(PegOperation operation)
 		{
 			return GetTypeTupleOf(operation.References
-				.Select((reference, order) => new NamedType(GetTypeOptionOf(GetOperationType(reference.Index)), reference.Identifier ?? $"choice{order}"))
+				.Where(reference => reference.Identifier is not null)
+				.Select(reference => new Symbol(GetTypeOptionOf(GetOperationType(reference.Index)), reference.Identifier!))
 				.ToList());
 		}
 
@@ -396,7 +418,8 @@ class Parser");
 		private string TypeSequence(PegOperation operation)
 		{
 			return GetTypeTupleOf(operation.References
-				.Select((reference, order) => new NamedType(GetOperationType(reference.Index), reference.Identifier ?? $"sequence{order}"))
+				.Where(reference => reference.Identifier is not null)
+				.Select(reference => new Symbol(GetOperationType(reference.Index), reference.Identifier!))
 				.ToList());
 		}
 
@@ -410,12 +433,12 @@ class Parser");
 			return GetTypeOptionOf(GetOperationType(operation.References[0].Index));
 		}
 
-		private readonly struct NamedType
+		private readonly struct Symbol
 		{
 			public readonly string Identifier;
 			public readonly string Type;
 
-			public NamedType(string type, string identifier)
+			public Symbol(string type, string identifier)
 			{
 				Identifier = identifier;
 				Type = type;
