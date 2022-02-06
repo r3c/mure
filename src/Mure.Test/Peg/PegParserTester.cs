@@ -16,8 +16,7 @@ namespace Mure.Test.Peg
 		public async Task TryMatch_Math(string expression, int expected)
 		{
 			var noAction = new Dictionary<string, PegAction>();
-
-			var states = new PegState[]
+			var definition = new PegDefinition(new[]
 			{
 				new PegState(PegOperation.CreateSequence(new[] { new PegReference(1, "result") }), CSharpAction("int", "return result;")),
 				new PegState(PegOperation.CreateSequence(new[] { new PegReference(7, "first"), new PegReference(2, "additiveTerms") }), CSharpAction("int", "var result = first; foreach (var term in additiveTerms) result = term.Item1 ? result - term.Item2 : result + term.Item2; return result;")), // 1: sum
@@ -42,10 +41,10 @@ namespace Mure.Test.Peg
 				new PegState(PegOperation.CreateSequence(new[] { new PegReference(21, null), new PegReference(0, "expression"), new PegReference(22, null) }), CSharpAction("int", "return expression;")),
 				new PegState(PegOperation.CreateCharacterSet(new[] { new PegRange('(', '(') }), noAction),
 				new PegState(PegOperation.CreateCharacterSet(new[] { new PegRange(')', ')') }), noAction)
-			};
+			});
 
 			// Generator
-			var generator = new CSharpGenerator(states);
+			var generator = new CSharpGenerator(definition);
 			string generatorCode;
 
 			using (var writer = new StringWriter())

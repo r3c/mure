@@ -1,17 +1,16 @@
-﻿using System.Collections.Generic;
-using System.IO;
+﻿using System.IO;
 
 namespace Mure.Peg.Generators
 {
 	abstract class LanguageGenerator<TContext> : IGenerator
 	{
+		private readonly PegDefinition _definition;
 		private readonly string _languageName;
-		private readonly IReadOnlyList<PegState> _states;
 
-		public LanguageGenerator(string languageName, IReadOnlyList<PegState> states)
+		public LanguageGenerator(string languageName, PegDefinition definition)
 		{
+			_definition = definition;
 			_languageName = languageName;
-			_states = states;
 		}
 
 		public void Generate(TextWriter writer, int startIndex)
@@ -20,7 +19,7 @@ namespace Mure.Peg.Generators
 
 			EmitHeader(context, startIndex);
 
-			for (var index = 0; index < _states.Count; ++index)
+			for (var index = 0; index < _definition.States.Count; ++index)
 				EmitState(context, index);
 
 			EmitFooter(context);
@@ -28,7 +27,7 @@ namespace Mure.Peg.Generators
 
 		protected (PegOperation, PegAction?) GetState(int index)
 		{
-			var state = _states[index];
+			var state = _definition.States[index];
 			var operation = state.Operation;
 
 			return (operation, state.Actions.TryGetValue(_languageName, out var action) ? action : null);

@@ -44,8 +44,8 @@ namespace Mure.Peg.Generators
 			)
 		};
 
-		public CSharpGenerator(IReadOnlyList<PegState> states) :
-			base(LanguageName, states)
+		public CSharpGenerator(PegDefinition definition) :
+			base(LanguageName, definition)
 		{
 		}
 
