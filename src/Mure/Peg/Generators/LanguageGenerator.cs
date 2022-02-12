@@ -13,11 +13,11 @@ namespace Mure.Peg.Generators
 			_languageName = languageName;
 		}
 
-		public void Generate(TextWriter writer, int startIndex)
+		public void Generate(TextWriter writer)
 		{
 			var context = CreateContext(writer);
 
-			EmitHeader(context, startIndex);
+			EmitHeader(context, _definition.StartIndex);
 
 			for (var index = 0; index < _definition.States.Count; ++index)
 				EmitState(context, index);

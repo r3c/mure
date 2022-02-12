@@ -2,8 +2,8 @@
 
 namespace Mure.Peg
 {
-	interface IGenerator
+	public interface IGenerator
 	{
-		void Generate(TextWriter writer, int startIndex);
+		void Generate(TextWriter writer);
 	}
 }

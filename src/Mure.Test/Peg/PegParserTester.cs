@@ -41,7 +41,7 @@ namespace Mure.Test.Peg
 				new PegState(PegOperation.CreateSequence(new[] { new PegReference(21, null), new PegReference(0, "expression"), new PegReference(22, null) }), CSharpAction("int", "return expression;")),
 				new PegState(PegOperation.CreateCharacterSet(new[] { new PegRange('(', '(') }), noAction),
 				new PegState(PegOperation.CreateCharacterSet(new[] { new PegRange(')', ')') }), noAction)
-			});
+			}, 0);
 
 			// Generator
 			var generator = new CSharpGenerator(definition);
@@ -49,7 +49,7 @@ namespace Mure.Test.Peg
 
 			using (var writer = new StringWriter())
 			{
-				generator.Generate(writer, 0);
+				generator.Generate(writer);
 
 				generatorCode = writer.ToString();
 			}
