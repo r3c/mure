@@ -2,7 +2,7 @@
 
 namespace Mure.Peg.Generators
 {
-	abstract class LanguageGenerator<TContext> : IGenerator
+	abstract class LanguageGenerator<TEmitter> : IGenerator
 	{
 		private readonly PegDefinition _definition;
 		private readonly string _languageName;
@@ -17,10 +17,10 @@ namespace Mure.Peg.Generators
 		{
 			var context = CreateContext(writer);
 
-			EmitHeader(context, _definition.StartIndex);
+			EmitHeader(context, _definition.ContextType, _definition.StartIndex);
 
 			for (var index = 0; index < _definition.States.Count; ++index)
-				EmitState(context, index);
+				EmitState(context, _definition.ContextType, index);
 
 			EmitFooter(context);
 		}
@@ -33,12 +33,12 @@ namespace Mure.Peg.Generators
 			return (operation, state.Actions.TryGetValue(_languageName, out var action) ? action : null);
 		}
 
-		protected abstract TContext CreateContext(TextWriter writer);
+		protected abstract TEmitter CreateContext(TextWriter writer);
 
-		protected abstract void EmitFooter(TContext context);
+		protected abstract void EmitFooter(TEmitter emitter);
 
-		protected abstract void EmitHeader(TContext context, int startIndex);
+		protected abstract void EmitHeader(TEmitter emitter, string contextType, int startIndex);
 
-		protected abstract void EmitState(TContext context, int stateIndex);
+		protected abstract void EmitState(TEmitter emitter, string contextType, int stateIndex);
 	}
 }

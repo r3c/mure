@@ -16,7 +16,7 @@ namespace Mure.Test.Peg
 		public async Task TryMatch_Math(string expression, int expected)
 		{
 			var noAction = new Dictionary<string, PegAction>();
-			var definition = new PegDefinition(new[]
+			var definition = new PegDefinition("bool", new[]
 			{
 				new PegState(PegOperation.CreateSequence(new[] { new PegReference(1, "result") }), CSharpAction("int", "return result;")),
 				new PegState(PegOperation.CreateSequence(new[] { new PegReference(7, "first"), new PegReference(2, "additiveTerms") }), CSharpAction("int", "var result = first; foreach (var term in additiveTerms) result = term.Item1 ? result - term.Item2 : result + term.Item2; return result;")), // 1: sum
@@ -54,7 +54,7 @@ namespace Mure.Test.Peg
 				generatorCode = writer.ToString();
 			}
 
-			var code = $"{generatorCode}\nreturn (expression) => new Parser().Parse(new System.IO.StringReader(expression)).Value;";
+			var code = $"{generatorCode}\nreturn (expression) => new Parser().Parse(new System.IO.StringReader(expression), false).Value;";
 			var result = await CompileAndRun<int>(code, expression);
 
 			Assert.That(result, Is.EqualTo(expected));
