@@ -8,10 +8,12 @@ namespace Mure.Generate
 {
 	class Program
 	{
+		private static readonly IReadOnlyDictionary<string, PegAction> EmptyAction = new Dictionary<string, PegAction>();
+
 		private static readonly PegDefinition Definition = new("bool", new[]
 		{
 			new PegState(PegOperation.CreateSequence(new[] { new PegReference(1, "result") }), CSharpAction("int", "return int.Parse(result);")),
-			new PegState(PegOperation.CreateCharacterSet(new[] { new PegRange('0', '9') }), new Dictionary<string, PegAction>())
+			new PegState(PegOperation.CreateCharacterSet(new[] { new PegRange('0', '9') }), EmptyAction)
 		}, 0);
 
 		static void Main(string[] args)
