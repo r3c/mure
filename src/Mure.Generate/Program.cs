@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using Mure.Peg;
@@ -29,7 +30,10 @@ namespace Mure.Generate
 
 			using (var writer = new StringWriter())
 			{
-				generator.Generate(writer);
+				var error = generator.Generate(writer);
+
+				if (error.HasValue)
+					throw new ArgumentOutOfRangeException(nameof(Definition));
 
 				return writer.ToString();
 			}
