@@ -68,10 +68,23 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 
-struct PegOption<T>
+readonly struct PegOption<T>
 {
-	public bool Defined;
-	public T Value;
+	public static readonly PegOption<T> Empty = new PegOption<T>(false, default!);
+
+	public static PegOption<T> Create(T value)
+	{
+		return new PegOption<T>(true, value);
+	}
+
+	public readonly bool Defined;
+	public readonly T Value;
+
+	private PegOption(bool defined, T value)
+	{
+		Defined = defined;
+		Value = value;
+	}
 }
 
 readonly struct PegResult<T>
@@ -159,12 +172,12 @@ class Parser");
 
 		private static string GetCreateOptionEmpty(string type)
 		{
-			return $"new PegOption<{type}> {{ Defined = false }}";
+			return $"PegOption<{type}>.Empty";
 		}
 
 		private static string GetCreateOptionValue(string type, string value)
 		{
-			return $"new PegOption<{type}> {{ Defined = true, Value = {value} }}";
+			return $"PegOption<{type}>.Create({value})";
 		}
 
 		private static string GetCreateTuple(IReadOnlyList<string> values)
@@ -296,8 +309,8 @@ class Parser");
 		private PegError? EmitStateOneOrMore(CSharpWriter writer, CSharpSymbol context, PegOperation operation, string returnType, string? converterBody)
 		{
 			var reference = operation.References[0];
-			var matchType = GetTypeListOf(GetOperationType(reference.Key));
-			var sequence = new CSharpSymbol(matchType, CSharpSymbol.SanitizeIdentifier(reference.Identifier ?? "elements"));
+			var matchType = GetOperationType(reference.Key);
+			var sequence = new CSharpSymbol(GetTypeListOf(matchType), CSharpSymbol.SanitizeIdentifier(reference.Identifier ?? "elements"));
 
 			writer.WriteLine($"var converter = {GetCreateConverter(new[] { context, sequence }, returnType, converterBody ?? sequence.Identifier)};");
 			writer.WriteLine($"var first = {GetOperationName(reference.Key)}(stream, {context.Identifier}, position);");
@@ -400,21 +413,21 @@ class Parser");
 		private PegError? EmitStateZeroOrOne(CSharpWriter writer, CSharpSymbol context, PegOperation operation, string returnType, string? converterBody)
 		{
 			var reference = operation.References[0];
-			var matchType = GetTypeOptionOf(GetOperationType(reference.Key));
-			var option = new CSharpSymbol(matchType, CSharpSymbol.SanitizeIdentifier(reference.Identifier ?? "option"));
+			var matchType = GetOperationType(reference.Key);
+			var option = new CSharpSymbol(GetTypeOptionOf(matchType), CSharpSymbol.SanitizeIdentifier(reference.Identifier ?? "option"));
 
 			writer.WriteLine($"var converter = {GetCreateConverter(new[] { context, option }, returnType, converterBody ?? option.Identifier)};");
 			writer.WriteLine($"var one = {GetOperationName(reference.Key)}(stream, {context.Identifier}, position);");
-			writer.WriteLine($"{matchType} instance;");
+			writer.WriteLine($"{option.Type} instance;");
 			writer.WriteBreak();
 			writer.WriteLine("if (one.HasValue)");
 			writer.BeginBlock();
-			writer.WriteLine($"instance = new {matchType} {{ Defined = true, Value = one.Value.Instance }};");
+			writer.WriteLine($"instance = {GetCreateOptionValue(matchType, "one.Value.Instance")};");
 			writer.WriteLine($"position = one.Value.Position;");
 			writer.EndBlock();
 			writer.WriteLine("else");
 			writer.BeginBlock();
-			writer.WriteLine($"instance = new {matchType} {{ Defined = false }};");
+			writer.WriteLine($"instance = {GetCreateOptionEmpty(matchType)};");
 			writer.EndBlock();
 			writer.WriteBreak();
 			writer.WriteLine($"return new PegResult<{returnType}>(converter({context.Identifier}, instance), position);");
