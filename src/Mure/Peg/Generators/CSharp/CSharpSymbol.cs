@@ -2,6 +2,11 @@
 {
 	internal readonly struct CSharpSymbol
 	{
+		public static string SanitizeIdentifier(string raw)
+		{
+			return raw; // FIXME
+		}
+
 		public readonly string Identifier;
 		public readonly string Type;
 
@@ -9,6 +14,11 @@
 		{
 			Identifier = identifier;
 			Type = type;
+		}
+
+		public string FormatDeclaration()
+		{
+			return $"{Type} {Identifier}";
 		}
 	}
 }
