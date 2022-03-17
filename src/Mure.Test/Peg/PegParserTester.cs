@@ -4,7 +4,6 @@ using System.IO;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.CSharp.Scripting;
 using Mure.Peg;
-using Mure.Peg.Generators;
 using NUnit.Framework;
 
 namespace Mure.Test.Peg
@@ -44,7 +43,7 @@ namespace Mure.Test.Peg
 			});
 
 			// Generator
-			var generator = new CSharpGenerator(definition);
+			var generator = Generator.CreateCSharp(definition);
 			string generatorCode;
 
 			using (var writer = new StringWriter())
@@ -71,7 +70,7 @@ namespace Mure.Test.Peg
 		{
 			return new Dictionary<string, PegAction>
 			{
-				[CSharpGenerator.LanguageName] = new PegAction(type, body)
+				[Generator.CSharpName] = new PegAction(type, body)
 			};
 		}
 	}

@@ -8,8 +8,6 @@ namespace Mure.Peg.Generators
 {
 	class CSharpGenerator : LanguageGenerator<CSharpWriter>
 	{
-		public const string LanguageName = "csharp";
-
 		private static readonly IReadOnlyList<CSharpImplementation> Implementations = new[]
 		{
 			new CSharpImplementation(
@@ -44,8 +42,8 @@ namespace Mure.Peg.Generators
 			)
 		};
 
-		public CSharpGenerator(PegDefinition definition) :
-			base(LanguageName, definition)
+		public CSharpGenerator(string languageName, PegDefinition definition) :
+			base(languageName, definition)
 		{
 		}
 

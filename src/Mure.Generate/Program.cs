@@ -2,7 +2,6 @@
 using System.IO;
 using System.Text;
 using Mure.Peg;
-using Mure.Peg.Generators;
 
 namespace Mure.Generate
 {
@@ -40,7 +39,7 @@ namespace Mure.Generate
 		{
 			return new Dictionary<string, PegAction>
 			{
-				[CSharpGenerator.LanguageName] = new PegAction(type, body)
+				[Generator.CSharpName] = new PegAction(type, body)
 			};
 		}
 	}
