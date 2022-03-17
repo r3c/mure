@@ -1,44 +1,65 @@
-﻿using System.IO;
+﻿using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 
 namespace Mure.Peg.Generators
 {
 	abstract class LanguageGenerator<TEmitter> : IGenerator
 	{
-		private readonly PegDefinition _definition;
+		private readonly string _contextType;
 		private readonly string _languageName;
+		private readonly string _startKey;
+		private readonly IReadOnlyDictionary<string, PegState> _states;
 
 		public LanguageGenerator(string languageName, PegDefinition definition)
 		{
-			_definition = definition;
+			_contextType = definition.ContextType;
 			_languageName = languageName;
+			_startKey = definition.StartKey;
+			_states = definition.States.GroupBy(state => state.Key).ToDictionary(group => group.Key, group => group.First());
 		}
 
-		public void Generate(TextWriter writer)
+		public PegError? Generate(TextWriter writer)
 		{
 			var context = CreateContext(writer);
+			var error = EmitHeader(context, _contextType, _startKey);
 
-			EmitHeader(context, _definition.ContextType, _definition.StartIndex);
+			if (error is not null)
+				return error;
 
-			for (var index = 0; index < _definition.States.Count; ++index)
-				EmitState(context, _definition.ContextType, index);
+			foreach (var state in _states)
+			{
+				error = EmitState(context, _contextType, state.Key);
 
-			EmitFooter(context);
+				if (error is not null)
+					return error;
+			}
+
+			return EmitFooter(context);
 		}
 
-		protected (PegOperation, PegAction?) GetState(int index)
+		protected bool TryGetState(string key, out PegOperation operation, out PegAction? action)
 		{
-			var state = _definition.States[index];
-			var operation = state.Operation;
+			if (!_states.TryGetValue(key, out var state))
+			{
+				operation = default;
+				action = default;
 
-			return (operation, state.Actions.TryGetValue(_languageName, out var action) ? action : null);
+				return false;
+			}
+
+			operation = state.Operation;
+			action = state.Actions.TryGetValue(_languageName, out var actionValue) ? actionValue : null;
+
+			return true;
 		}
 
 		protected abstract TEmitter CreateContext(TextWriter writer);
 
-		protected abstract void EmitFooter(TEmitter emitter);
+		protected abstract PegError? EmitFooter(TEmitter emitter);
 
-		protected abstract void EmitHeader(TEmitter emitter, string contextType, int startIndex);
+		protected abstract PegError? EmitHeader(TEmitter emitter, string contextType, string startKey);
 
-		protected abstract void EmitState(TEmitter emitter, string contextType, int stateIndex);
+		protected abstract PegError? EmitState(TEmitter emitter, string contextType, string startKey);
 	}
 }

@@ -10,11 +10,11 @@ namespace Mure.Generate
 	{
 		private static readonly IReadOnlyDictionary<string, PegAction> EmptyAction = new Dictionary<string, PegAction>();
 
-		private static readonly PegDefinition Definition = new("bool", new[]
+		private static readonly PegDefinition Definition = new("bool", "main", new[]
 		{
-			new PegState(PegOperation.CreateSequence(new[] { new PegReference(1, "result") }), CSharpAction("int", "return int.Parse(result);")),
-			new PegState(PegOperation.CreateCharacterSet(new[] { new PegRange('0', '9') }), EmptyAction)
-		}, 0);
+			new PegState("main", PegOperation.CreateSequence(new[] { new PegReference("number", "result") }), CSharpAction("int", "return int.Parse(result);")),
+			new PegState("number", PegOperation.CreateCharacterSet(new[] { new PegRange('0', '9') }), EmptyAction)
+		});
 
 		static void Main(string[] args)
 		{

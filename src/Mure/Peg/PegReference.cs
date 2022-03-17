@@ -3,12 +3,12 @@
 	readonly struct PegReference
 	{
 		public readonly string? Identifier;
-		public readonly int Index;
+		public readonly string Key;
 
-		public PegReference(int index, string? identifier)
+		public PegReference(string key, string? identifier)
 		{
 			Identifier = identifier;
-			Index = index;
+			Key = key;
 		}
 	}
 }

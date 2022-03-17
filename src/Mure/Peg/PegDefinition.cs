@@ -5,13 +5,13 @@ namespace Mure.Peg
 	readonly struct PegDefinition
 	{
 		public readonly string ContextType;
-		public readonly int StartIndex;
+		public readonly string StartKey;
 		public readonly IReadOnlyList<PegState> States;
 
-		public PegDefinition(string contextType, IReadOnlyList<PegState> states, int startIndex)
+		public PegDefinition(string contextType, string startKey, IReadOnlyList<PegState> states)
 		{
 			ContextType = contextType;
-			StartIndex = startIndex;
+			StartKey = startKey;
 			States = states;
 		}
 	}

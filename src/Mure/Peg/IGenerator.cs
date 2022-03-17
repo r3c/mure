@@ -4,6 +4,6 @@ namespace Mure.Peg
 {
 	public interface IGenerator
 	{
-		void Generate(TextWriter writer);
+		PegError? Generate(TextWriter writer);
 	}
 }
