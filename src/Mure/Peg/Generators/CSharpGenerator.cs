@@ -136,6 +136,11 @@ class Parser");
 			writer.EndBlock();
 		}
 
+		private static string GetCreateConverter(IReadOnlyList<CSharpSymbol> arguments, string returnType, string converterBody)
+		{
+			return $"new Func<{string.Join(", ", arguments.Select(namedType => namedType.Type).Append(returnType))}>(({string.Join(", ", arguments.Select(namedType => $"{namedType.Type} {namedType.Identifier}"))}) => {converterBody})";
+		}
+
 		private static string GetCreateList(string type)
 		{
 			return $"new List<{type}>()";
@@ -162,11 +167,6 @@ class Parser");
 				return $"({values[0]}, false)";
 
 			return $"({string.Join(", ", values)})";
-		}
-
-		private static string GetDeclareConverter(IReadOnlyList<CSharpSymbol> arguments, string returnType, string converterBody)
-		{
-			return $"new Func<{string.Join(", ", arguments.Select(namedType => namedType.Type).Append(returnType))}>(({string.Join(", ", arguments.Select(namedType => $"{namedType.Type} {namedType.Identifier}"))}) => {converterBody})";
 		}
 
 		private static string GetTypeListOf(string type)
@@ -222,7 +222,7 @@ class Parser");
 				next = " || ";
 			}
 
-			writer.WriteLine($"var converter = {GetDeclareConverter(new[] { context, capture }, returnType, converterBody ?? capture.Identifier)};");
+			writer.WriteLine($"var converter = {GetCreateConverter(new[] { context, capture }, returnType, converterBody ?? capture.Identifier)};");
 			writer.WriteLine("var character = stream.ReadAt(position);");
 			writer.WriteBreak();
 			writer.WriteLine($"if ({buffer})");
@@ -253,7 +253,7 @@ class Parser");
 				.Prepend(context)
 				.ToList();
 
-			writer.WriteLine($"var converter = {GetDeclareConverter(choices, returnType, converterBody ?? GetCreateTuple(choices.Select(namedType => namedType.Identifier).ToList()))};");
+			writer.WriteLine($"var converter = {GetCreateConverter(choices, returnType, converterBody ?? GetCreateTuple(choices.Select(namedType => namedType.Identifier).ToList()))};");
 			writer.WriteBreak();
 
 			var i = 0;
@@ -283,7 +283,7 @@ class Parser");
 			var matchType = GetTypeListOf(GetOperationType(reference.Index));
 			var sequence = new CSharpSymbol(matchType, CSharpSymbol.SanitizeIdentifier(reference.Identifier ?? "elements"));
 
-			writer.WriteLine($"var converter = {GetDeclareConverter(new[] { context, sequence }, returnType, converterBody ?? sequence.Identifier)};");
+			writer.WriteLine($"var converter = {GetCreateConverter(new[] { context, sequence }, returnType, converterBody ?? sequence.Identifier)};");
 			writer.WriteLine($"var first = {GetOperationName(reference.Index)}(stream, {context.Identifier}, position);");
 			writer.WriteBreak();
 			writer.WriteLine("if (!first.HasValue)");
@@ -331,7 +331,7 @@ class Parser");
 				})
 				.ToList();
 
-			writer.WriteLine($"var converter = {GetDeclareConverter(elements, returnType, converterBody ?? GetCreateTuple(elements.Select(namedType => namedType.Identifier).ToList()))};");
+			writer.WriteLine($"var converter = {GetCreateConverter(elements, returnType, converterBody ?? GetCreateTuple(elements.Select(namedType => namedType.Identifier).ToList()))};");
 
 			foreach (var fragment in fragments)
 			{
@@ -357,7 +357,7 @@ class Parser");
 			var matchType = GetTypeListOf(GetOperationType(reference.Index));
 			var sequence = new CSharpSymbol(matchType, CSharpSymbol.SanitizeIdentifier(reference.Identifier ?? "elements"));
 
-			writer.WriteLine($"var converter = {GetDeclareConverter(new[] { context, sequence }, returnType, converterBody ?? sequence.Identifier)};");
+			writer.WriteLine($"var converter = {GetCreateConverter(new[] { context, sequence }, returnType, converterBody ?? sequence.Identifier)};");
 			writer.WriteLine($"var instances = {GetCreateList(GetOperationType(reference.Index))};");
 			writer.WriteBreak();
 			writer.WriteLine("while (true)");
@@ -381,7 +381,7 @@ class Parser");
 			var matchType = GetTypeOptionOf(GetOperationType(reference.Index));
 			var option = new CSharpSymbol(matchType, CSharpSymbol.SanitizeIdentifier(reference.Identifier ?? "option"));
 
-			writer.WriteLine($"var converter = {GetDeclareConverter(new[] { context, option }, returnType, converterBody ?? option.Identifier)};");
+			writer.WriteLine($"var converter = {GetCreateConverter(new[] { context, option }, returnType, converterBody ?? option.Identifier)};");
 			writer.WriteLine($"var one = {GetOperationName(reference.Index)}(stream, {context.Identifier}, position);");
 			writer.WriteLine($"{matchType} instance;");
 			writer.WriteBreak();
