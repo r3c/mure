@@ -1,5 +1,6 @@
 /.vs/
 /.vscode/
 /src/.vs/
+/src/Mure.Compiler/Parser.cs
 bin/
 obj/

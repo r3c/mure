@@ -18,7 +18,7 @@
 
 		public string FormatDeclaration()
 		{
-			return $"{Type} {Identifier}";
+			return $"{Type} {SanitizeIdentifier(Identifier)}";
 		}
 	}
 }

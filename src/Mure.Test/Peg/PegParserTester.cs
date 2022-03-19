@@ -15,32 +15,36 @@ namespace Mure.Test.Peg
 		public async Task TryMatch_Math(string expression, int expected)
 		{
 			var noAction = new Dictionary<string, PegAction>();
-			var definition = new PegDefinition("bool", "expression", new[]
-			{
-				new PegState("expression", PegOperation.CreateSequence(new[] { new PegReference("sum", "result") }), CSharpAction("int", "return result;")),
-				new PegState("sum", PegOperation.CreateSequence(new[] { new PegReference("product", "first"), new PegReference("additiveTerms", "terms") }), CSharpAction("int", "var result = first; foreach (var term in terms) result = term.Item1 ? result - term.Item2 : result + term.Item2; return result;")),
-				new PegState("additiveTerms", PegOperation.CreateZeroOrMore(new PegReference("additiveTerm", null)), noAction),
-				new PegState("additiveTerm", PegOperation.CreateSequence(new[] { new PegReference("4", "sign"), new PegReference("product", "value") }), CSharpAction("(bool, int)", "return (sign, value);")),
-				new PegState("4", PegOperation.CreateChoice(new[] { new PegReference("5", "plus"), new PegReference("6", "minus") }), CSharpAction("bool", "return minus.Defined;")),
-				new PegState("5", PegOperation.CreateCharacterSet(new[] { new PegRange('+', '+') }), noAction),
-				new PegState("6", PegOperation.CreateCharacterSet(new[] { new PegRange('-', '-') }), noAction),
-				new PegState("product", PegOperation.CreateSequence(new[] { new PegReference("power", "first"), new PegReference("multiplicativeTerms", "terms") }), CSharpAction("int", "var result = first; foreach (var term in terms) result = term.Item1 ? result / term.Item2 : result * term.Item2; return result;")),
-				new PegState("multiplicativeTerms", PegOperation.CreateZeroOrMore(new PegReference("multiplicativeTerm", null)), noAction),
-				new PegState("multiplicativeTerm", PegOperation.CreateSequence(new[] { new PegReference("10", "sign"), new PegReference("power", "value") }), CSharpAction("(bool, int)", "return (sign, value);")),
-				new PegState("10", PegOperation.CreateChoice(new[] { new PegReference("11", "multiply"), new PegReference("12", "divide") }), CSharpAction("bool", "return divide.Defined;")),
-				new PegState("11", PegOperation.CreateCharacterSet(new[] { new PegRange('*', '*') }), noAction),
-				new PegState("12", PegOperation.CreateCharacterSet(new[] { new PegRange('/', '/') }), noAction),
-				new PegState("power", PegOperation.CreateSequence(new[] { new PegReference("value", "value"), new PegReference("14", "power") }), CSharpAction("int", "return power.Defined ? (int)Math.Pow(value, power.Value) : value;")),
-				new PegState("14", PegOperation.CreateZeroOrOne(new PegReference("15", null)), noAction),
-				new PegState("15", PegOperation.CreateSequence(new[] { new PegReference("16", null), new PegReference("power", "power") }), CSharpAction("int", "return power;")),
-				new PegState("16", PegOperation.CreateCharacterSet(new[] { new PegRange('^', '^') }), noAction),
-				new PegState("value", PegOperation.CreateChoice(new[] { new PegReference("18", "number"), new PegReference("20", "parenthesis") }), CSharpAction("int", "return number.Defined ? number.Value : parenthesis.Value;")),
-				new PegState("18", PegOperation.CreateOneOrMore(new PegReference("19", "digits")), CSharpAction("int", "return int.Parse(string.Join(string.Empty, digits));")),
-				new PegState("19", PegOperation.CreateCharacterSet(new[] { new PegRange('0', '9') }), noAction),
-				new PegState("20", PegOperation.CreateSequence(new[] { new PegReference("21", null), new PegReference("expression", "expression"), new PegReference("22", null) }), CSharpAction("int", "return expression;")),
-				new PegState("21", PegOperation.CreateCharacterSet(new[] { new PegRange('(', '(') }), noAction),
-				new PegState("22", PegOperation.CreateCharacterSet(new[] { new PegRange(')', ')') }), noAction)
-			});
+			var definition = new PegDefinition
+			(
+				CSharp(new PegConfiguration(string.Empty, "bool", "context")),
+				new[]
+				{
+					new PegState("expression", PegOperation.CreateSequence(new[] { new PegReference("sum", "result") }), CSharp(new PegAction("int", "result"))),
+					new PegState("sum", PegOperation.CreateSequence(new[] { new PegReference("product", "first"), new PegReference("additiveTerms", "terms") }), CSharp(new PegAction("int", "{ var result = first; foreach (var term in terms) result = term.Item1 ? result - term.Item2 : result + term.Item2; return result; }"))),
+					new PegState("additiveTerms", PegOperation.CreateZeroOrMore(new PegReference("additiveTerm", null)), noAction),
+					new PegState("additiveTerm", PegOperation.CreateSequence(new[] { new PegReference("4", "sign"), new PegReference("product", "value") }), CSharp(new PegAction("(bool, int)", "(sign, value)"))),
+					new PegState("4", PegOperation.CreateChoice(new[] { new PegReference("5", "plus"), new PegReference("6", "minus") }), CSharp(new PegAction("bool", "minus.Defined"))),
+					new PegState("5", PegOperation.CreateCharacterSet(new[] { new PegRange('+', '+') }), noAction),
+					new PegState("6", PegOperation.CreateCharacterSet(new[] { new PegRange('-', '-') }), noAction),
+					new PegState("product", PegOperation.CreateSequence(new[] { new PegReference("power", "first"), new PegReference("multiplicativeTerms", "terms") }), CSharp(new PegAction("int", "{ var result = first; foreach (var term in terms) result = term.Item1 ? result / term.Item2 : result * term.Item2; return result; }"))),
+					new PegState("multiplicativeTerms", PegOperation.CreateZeroOrMore(new PegReference("multiplicativeTerm", null)), noAction),
+					new PegState("multiplicativeTerm", PegOperation.CreateSequence(new[] { new PegReference("10", "sign"), new PegReference("power", "value") }), CSharp(new PegAction("(bool, int)", "(sign, value)"))),
+					new PegState("10", PegOperation.CreateChoice(new[] { new PegReference("11", "multiply"), new PegReference("12", "divide") }), CSharp(new PegAction("bool", "divide.Defined"))),
+					new PegState("11", PegOperation.CreateCharacterSet(new[] { new PegRange('*', '*') }), noAction),
+					new PegState("12", PegOperation.CreateCharacterSet(new[] { new PegRange('/', '/') }), noAction),
+					new PegState("power", PegOperation.CreateSequence(new[] { new PegReference("value", "value"), new PegReference("14", "power") }), CSharp(new PegAction("int", "power.Defined ? (int)Math.Pow(value, power.Value) : value"))),
+					new PegState("14", PegOperation.CreateZeroOrOne(new PegReference("15", null)), noAction),
+					new PegState("15", PegOperation.CreateSequence(new[] { new PegReference("16", null), new PegReference("power", "power") }), CSharp(new PegAction("int", "power"))),
+					new PegState("16", PegOperation.CreateCharacterSet(new[] { new PegRange('^', '^') }), noAction),
+					new PegState("value", PegOperation.CreateChoice(new[] { new PegReference("18", "number"), new PegReference("20", "parenthesis") }), CSharp(new PegAction("int", "number.Defined ? number.Value : parenthesis.Value"))),
+					new PegState("18", PegOperation.CreateOneOrMore(new PegReference("19", "digits")), CSharp(new PegAction("int", "int.Parse(string.Join(string.Empty, digits))"))),
+					new PegState("19", PegOperation.CreateCharacterSet(new[] { new PegRange('0', '9') }), noAction),
+					new PegState("20", PegOperation.CreateSequence(new[] { new PegReference("21", null), new PegReference("expression", "expression"), new PegReference("22", null) }), CSharp(new PegAction("int", "expression"))),
+					new PegState("21", PegOperation.CreateCharacterSet(new[] { new PegRange('(', '(') }), noAction),
+					new PegState("22", PegOperation.CreateCharacterSet(new[] { new PegRange(')', ')') }), noAction)
+				}
+			);
 
 			// Generator
 			var generator = Generator.CreateCSharp(definition);
@@ -66,11 +70,11 @@ namespace Mure.Test.Peg
 			return function(input);
 		}
 
-		private static IReadOnlyDictionary<string, PegAction> CSharpAction(string type, string body)
+		private static IReadOnlyDictionary<string, T> CSharp<T>(T value)
 		{
-			return new Dictionary<string, PegAction>
+			return new Dictionary<string, T>
 			{
-				[Generator.CSharpName] = new PegAction(type, body)
+				[Generator.CSharpName] = value
 			};
 		}
 	}

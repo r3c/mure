@@ -17,7 +17,7 @@ namespace Mure.Peg.Generators
 			new CSharpImplementation(
 				(generator, operation) => GetTypeTupleOf(operation.References
 					.Where(reference => reference.Identifier is not null)
-					.Select(reference => new CSharpSymbol(GetTypeOptionOf(generator.GetOperationType(reference.Key)), CSharpSymbol.SanitizeIdentifier(reference.Identifier!)))
+					.Select(reference => new CSharpSymbol(GetTypeOptionOf(generator.GetOperationType(reference.Key)), reference.Identifier!))
 					.ToList()),
 				(generator, writer, context, operation, returnType, converterBody) => generator.EmitStateChoice(writer, context, operation, returnType, converterBody)
 			),
@@ -28,7 +28,7 @@ namespace Mure.Peg.Generators
 			new CSharpImplementation(
 				(generator, operation) => GetTypeTupleOf(operation.References
 					.Where(reference => reference.Identifier is not null)
-					.Select(reference => new CSharpSymbol(generator.GetOperationType(reference.Key), CSharpSymbol.SanitizeIdentifier(reference.Identifier!)))
+					.Select(reference => new CSharpSymbol(generator.GetOperationType(reference.Key), reference.Identifier!))
 					.ToList()),
 				(generator, writer, context, operation, returnType, converterBody) => generator.EmitStateSequence(writer, context, operation, returnType, converterBody)
 			),
@@ -59,13 +59,15 @@ namespace Mure.Peg.Generators
 			return null;
 		}
 
-		protected override PegError? EmitHeader(CSharpWriter writer, string contextType, string startKey)
+		protected override PegError? EmitHeader(CSharpWriter writer, PegConfiguration configuration, string startKey)
 		{
+			var context = GetContextSymbol(configuration);
+
 			writer.WriteLine(@"// Generated code
 using System;
 using System.Collections.Generic;
 using System.IO;
-
+" + (configuration.Preamble ?? string.Empty) + @"
 readonly struct PegOption<T>
 {
 	public static readonly PegOption<T> Empty = new PegOption<T>(false, default!);
@@ -121,10 +123,10 @@ class Parser");
 
 			writer.BeginBlock();
 
-			writer.WriteLine(@"public PegOption<" + GetOperationType(startKey) + @"> Parse(TextReader reader, " + contextType + @" context)
+			writer.WriteLine(@"public PegOption<" + GetOperationType(startKey) + @"> Parse(TextReader reader, " + context.Type + " " + CSharpSymbol.SanitizeIdentifier(context.Identifier) + @")
 	{
 		var stream = new PegStream(reader);
-		var result = " + GetOperationName(startKey) + @"(stream, context, 0);
+		var result = " + GetOperationName(startKey) + @"(stream, " + CSharpSymbol.SanitizeIdentifier(context.Identifier) + @", 0);
 
 		if (!result.HasValue)
 			return " + GetCreateOptionEmpty(GetOperationType(startKey)) + @";
@@ -135,20 +137,20 @@ class Parser");
 			return null;
 		}
 
-		protected override PegError? EmitState(CSharpWriter writer, string contextType, string startKey)
+		protected override PegError? EmitState(CSharpWriter writer, PegConfiguration configuration, string key)
 		{
-			if (!TryGetState(startKey, out var operation, out var action))
-				return PegError.CreateUnknownStateKey(startKey);
+			if (!TryGetState(key, out var operation, out var action))
+				return PegError.CreateUnknownStateKey(key);
 
-			var context = new CSharpSymbol(contextType, "context");
+			var context = GetContextSymbol(configuration);
 			var implementation = Implementations[(int)operation.Operator];
-			var returnType = GetOperationType(startKey);
+			var returnType = GetOperationType(key);
 
 			writer.WriteBreak();
-			writer.WriteLine($"private PegResult<{returnType}>? {GetOperationName(startKey)}(PegStream stream, {context.FormatDeclaration()}, int position)");
+			writer.WriteLine($"private PegResult<{returnType}>? {GetOperationName(key)}(PegStream stream, {context.FormatDeclaration()}, int position)");
 			writer.BeginBlock();
 
-			var error = implementation.Write(this, writer, context, operation, action.HasValue ? action.Value.Type : returnType, action.HasValue ? $"{{ {action.Value.Body} }}" : null);
+			var error = implementation.Write(this, writer, context, operation, action.HasValue ? action.Value.Type : returnType, action.HasValue ? action.Value.Body : null);
 
 			if (error is not null)
 				return error;
@@ -156,6 +158,11 @@ class Parser");
 			writer.EndBlock();
 
 			return null;
+		}
+
+		private static CSharpSymbol GetContextSymbol(PegConfiguration configuration)
+		{
+			return new CSharpSymbol(configuration.ContextType ?? "void", configuration.ContextName ?? "context");
 		}
 
 		private static string GetCreateConverter(IReadOnlyList<CSharpSymbol> arguments, string returnType, string converterBody)
@@ -274,7 +281,7 @@ class Parser");
 
 			var choices = references
 				.Where(reference => reference.Identifier is not null)
-				.Select(reference => new CSharpSymbol(GetTypeOptionOf(GetOperationType(reference.Key)), CSharpSymbol.SanitizeIdentifier(reference.Identifier!)))
+				.Select(reference => new CSharpSymbol(GetTypeOptionOf(GetOperationType(reference.Key)), reference.Identifier!))
 				.Prepend(context)
 				.ToList();
 
@@ -308,7 +315,7 @@ class Parser");
 		{
 			var reference = operation.References[0];
 			var matchType = GetOperationType(reference.Key);
-			var sequence = new CSharpSymbol(GetTypeListOf(matchType), CSharpSymbol.SanitizeIdentifier(reference.Identifier ?? "elements"));
+			var sequence = new CSharpSymbol(GetTypeListOf(matchType), reference.Identifier ?? "elements");
 
 			writer.WriteLine($"var converter = {GetCreateConverter(new[] { context, sequence }, returnType, converterBody ?? sequence.Identifier)};");
 			writer.WriteLine($"var first = {GetOperationName(reference.Key)}(stream, {context.Identifier}, position);");
@@ -347,7 +354,7 @@ class Parser");
 
 			var elements = references
 				.Where(reference => reference.Identifier is not null)
-				.Select(reference => new CSharpSymbol(GetOperationType(reference.Key), CSharpSymbol.SanitizeIdentifier(reference.Identifier!)))
+				.Select(reference => new CSharpSymbol(GetOperationType(reference.Key), reference.Identifier!))
 				.Prepend(context)
 				.ToList();
 
@@ -386,7 +393,7 @@ class Parser");
 		{
 			var reference = operation.References[0];
 			var matchType = GetTypeListOf(GetOperationType(reference.Key));
-			var sequence = new CSharpSymbol(matchType, CSharpSymbol.SanitizeIdentifier(reference.Identifier ?? "elements"));
+			var sequence = new CSharpSymbol(matchType, reference.Identifier ?? "elements");
 
 			writer.WriteLine($"var converter = {GetCreateConverter(new[] { context, sequence }, returnType, converterBody ?? sequence.Identifier)};");
 			writer.WriteLine($"var instances = {GetCreateList(GetOperationType(reference.Key))};");
@@ -412,7 +419,7 @@ class Parser");
 		{
 			var reference = operation.References[0];
 			var matchType = GetOperationType(reference.Key);
-			var option = new CSharpSymbol(GetTypeOptionOf(matchType), CSharpSymbol.SanitizeIdentifier(reference.Identifier ?? "option"));
+			var option = new CSharpSymbol(GetTypeOptionOf(matchType), reference.Identifier ?? "option");
 
 			writer.WriteLine($"var converter = {GetCreateConverter(new[] { context, option }, returnType, converterBody ?? option.Identifier)};");
 			writer.WriteLine($"var one = {GetOperationName(reference.Key)}(stream, {context.Identifier}, position);");

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
@@ -6,30 +7,33 @@ namespace Mure.Peg.Generators
 {
 	abstract class LanguageGenerator<TEmitter> : IGenerator
 	{
-		private readonly string _contextType;
+		private readonly PegConfiguration _configuration;
 		private readonly string _languageName;
 		private readonly string _startKey;
 		private readonly IReadOnlyDictionary<string, PegState> _states;
 
 		public LanguageGenerator(string languageName, PegDefinition definition)
 		{
-			_contextType = definition.ContextType;
+			if (definition.States.Count < 1)
+				throw new ArgumentOutOfRangeException(nameof(definition), "definition must contain at least one state");
+
+			_configuration = definition.Configurations.TryGetValue(languageName, out var configuration) ? configuration : new PegConfiguration(null, null, null);
 			_languageName = languageName;
-			_startKey = definition.StartKey;
+			_startKey = definition.States[0].Key;
 			_states = definition.States.GroupBy(state => state.Key).ToDictionary(group => group.Key, group => group.First());
 		}
 
 		public PegError? Generate(TextWriter writer)
 		{
 			var context = CreateContext(writer);
-			var error = EmitHeader(context, _contextType, _startKey);
+			var error = EmitHeader(context, _configuration, _startKey);
 
 			if (error is not null)
 				return error;
 
 			foreach (var state in _states)
 			{
-				error = EmitState(context, _contextType, state.Key);
+				error = EmitState(context, _configuration, state.Key);
 
 				if (error is not null)
 					return error;
@@ -58,8 +62,8 @@ namespace Mure.Peg.Generators
 
 		protected abstract PegError? EmitFooter(TEmitter emitter);
 
-		protected abstract PegError? EmitHeader(TEmitter emitter, string contextType, string startKey);
+		protected abstract PegError? EmitHeader(TEmitter emitter, PegConfiguration configuration, string startKey);
 
-		protected abstract PegError? EmitState(TEmitter emitter, string contextType, string startKey);
+		protected abstract PegError? EmitState(TEmitter emitter, PegConfiguration configuration, string key);
 	}
 }

@@ -4,14 +4,12 @@ namespace Mure.Peg
 {
 	readonly struct PegDefinition
 	{
-		public readonly string ContextType;
-		public readonly string StartKey;
+		public readonly IReadOnlyDictionary<string, PegConfiguration> Configurations;
 		public readonly IReadOnlyList<PegState> States;
 
-		public PegDefinition(string contextType, string startKey, IReadOnlyList<PegState> states)
+		public PegDefinition(IReadOnlyDictionary<string, PegConfiguration> configurations, IReadOnlyList<PegState> states)
 		{
-			ContextType = contextType;
-			StartKey = startKey;
+			Configurations = configurations;
 			States = states;
 		}
 	}

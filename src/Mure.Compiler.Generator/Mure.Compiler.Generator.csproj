@@ -5,8 +5,7 @@
     <Nullable>enable</Nullable>
     <OutputType>Exe</OutputType>
     <TargetFramework>net6.0</TargetFramework>
-    <ApplicationIcon />
-    <StartupObject>Mure.Generate.Program</StartupObject>
+    <StartupObject>Mure.Compiler.Generator.Program</StartupObject>
   </PropertyGroup>
 
   <ItemGroup>
