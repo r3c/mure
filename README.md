@@ -1,7 +1,7 @@
 Mure: MUlti-valued Regular Expressions
 ======================================
 
-[![Build Status](https://img.shields.io/github/workflow/status/r3c/mure/validate/master)](https://github.com/r3c/mure/actions)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/r3c/mure/validate.yml?branch=master)](https://github.com/r3c/mure/actions)
 [![license](https://img.shields.io/github/license/r3c/mure.svg)](https://opensource.org/licenses/MIT)
 
 Overview
