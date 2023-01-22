@@ -1,6 +1,6 @@
 namespace Mure
 {
-	public interface ICompiler<TPattern, TValue>
+	public interface ICompiler<in TPattern, TValue>
 	{
 		ICompiler<TPattern, TValue> AddEndOfFile(TValue value);
 

@@ -3,20 +3,20 @@ using Mure.Automata;
 using Mure.Matchers;
 using NUnit.Framework;
 
-namespace Mure.Test.Scanners
+namespace Mure.Test.Matchers
 {
-	public class AutomataMatcherTester
+	internal class AutomataMatcherTester
 	{
-		[TestCase("a", false, default, default)]
-		[TestCase("aa", false, default, default)]
-		[TestCase("aaa", false, default, default)]
+		[TestCase("a", false, null, 0)]
+		[TestCase("aa", false, null, 0)]
+		[TestCase("aaa", false, null, 0)]
 		[TestCase("aab", true, "aab", 17)]
 		[TestCase("aaab", true, "aaab", 17)]
 		[TestCase("ab", true, "ab", 17)]
 		[TestCase("abb", true, "ab", 17)]
 		[TestCase("abbb", true, "ab", 17)]
-		[TestCase("b", false, default, default)]
-		[TestCase("c", false, default, default)]
+		[TestCase("b", false, null, 0)]
+		[TestCase("c", false, null, 0)]
 		public void ConnectToRange(string pattern, bool success, string expectedCapture, int expectedValue)
 		{
 			var automata = new NonDeterministicAutomata<int>();
@@ -31,28 +31,28 @@ namespace Mure.Test.Scanners
 			ConvertAndMatch(q0, pattern, success, expectedCapture, expectedValue);
 		}
 
-		[TestCase("a", false, default, default)]
+		[TestCase("a", false, null, 0)]
 		[TestCase("aae", true, "aae", 17)]
-		[TestCase("aab", false, default, default)]
+		[TestCase("aab", false, null, 0)]
 		[TestCase("aabbe", true, "aabbe", 17)]
 		[TestCase("aabce", true, "aabce", 17)]
-		[TestCase("aabcce", false, default, default)]
+		[TestCase("aabcce", false, null, 0)]
 		[TestCase("aabbf", true, "aabbf", 42)]
 		[TestCase("aabe", true, "aabe", 17)]
 		[TestCase("aabf", true, "aabf", 42)]
-		[TestCase("ab", false, default, default)]
+		[TestCase("ab", false, null, 0)]
 		[TestCase("abae", true, "abae", 17)]
 		[TestCase("abaae", true, "abaae", 17)]
 		[TestCase("abbae", true, "abbae", 17)]
 		[TestCase("ae", true, "ae", 17)]
-		[TestCase("af", false, default, default)]
+		[TestCase("af", false, null, 0)]
 		[TestCase("bf", true, "bf", 42)]
 		[TestCase("bbf", true, "bbf", 42)]
 		[TestCase("bcf", true, "bcf", 42)]
 		[TestCase("bdf", true, "bdf", 42)]
 		[TestCase("cf", true, "cf", 42)]
 		[TestCase("df", true, "df", 42)]
-		public void ConnectToOverlaps(string pattern, bool success, string expectedCapture, int expectedValue)
+		public void ConnectToOverlaps(string pattern, bool success, string? expectedCapture, int expectedValue)
 		{
 			var automata = new NonDeterministicAutomata<int>();
 			var q0 = automata.PushEmpty();
@@ -70,14 +70,14 @@ namespace Mure.Test.Scanners
 			ConvertAndMatch(q0, pattern, success, expectedCapture, expectedValue);
 		}
 
-		[TestCase("a", false, default, default)]
-		[TestCase("aa", false, default, default)]
+		[TestCase("a", false, null, 0)]
+		[TestCase("aa", false, null, 0)]
 		[TestCase("aab", true, "aab", 17)]
 		[TestCase("ab", true, "ab", 17)]
 		[TestCase("b", true, "b", 17)]
 		[TestCase("ba", true, "b", 17)]
 		[TestCase("bb", true, "b", 17)]
-		public void EpsilonTo(string pattern, bool success, string expectedCapture, int expectedValue)
+		public void EpsilonTo(string pattern, bool success, string? expectedCapture, int expectedValue)
 		{
 			var automata = new NonDeterministicAutomata<int>();
 			var q0 = automata.PushEmpty();
@@ -105,18 +105,16 @@ namespace Mure.Test.Scanners
 			ConvertAndMatch(q0, "a", true, "a", 22);
 		}
 
-		private static void ConvertAndMatch<TValue>(NonDeterministicNode<TValue> node, string pattern, bool success, string expectedCapture, TValue? expectedValue) where TValue : struct
+		private static void ConvertAndMatch<TValue>(NonDeterministicNode<TValue> node, string pattern, bool success, string? expectedCapture, TValue? expectedValue) where TValue : struct
 		{
+			using var reader = new StringReader(pattern);
+
 			var scanner = new AutomataMatcher<TValue>(node.ToDeterministic());
+			var matcher = scanner.Open(reader);
 
-			using (var reader = new StringReader(pattern))
-			{
-				var matcher = scanner.Open(reader);
-
-				Assert.That(matcher.TryMatchNext(out var match), Is.EqualTo(success));
-				Assert.That(match.Capture, Is.EqualTo(expectedCapture));
-				Assert.That(match.Value, Is.EqualTo(expectedValue));
-			}
+			Assert.That(matcher.TryMatchNext(out var match), Is.EqualTo(success));
+			Assert.That(match.Capture, Is.EqualTo(expectedCapture));
+			Assert.That(match.Value, Is.EqualTo(expectedValue));
 		}
 	}
 }

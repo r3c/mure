@@ -4,13 +4,13 @@ using Mure.Automata;
 
 namespace Mure.Compilers.Pattern
 {
-	readonly struct Node
+	internal readonly struct Node
 	{
-		public readonly IReadOnlyList<Node> Children;
-		public readonly IReadOnlyList<NodeRange> Ranges;
-		public readonly int RepeatMax;
-		public readonly int RepeatMin;
-		public readonly NodeType Type;
+		private readonly IReadOnlyList<Node> _children;
+		private readonly IReadOnlyList<NodeRange> _ranges;
+		private readonly int _repeatMax;
+		private readonly int _repeatMin;
+		private readonly NodeType _type;
 
 		public static Node CreateAlternative(IReadOnlyList<Node> children)
 		{
@@ -39,11 +39,11 @@ namespace Mure.Compilers.Pattern
 
 		private Node(NodeType type, IReadOnlyList<Node> children, IReadOnlyList<NodeRange> ranges, int repeatMin, int repeatMax)
 		{
-			Children = children;
-			Ranges = ranges;
-			RepeatMax = repeatMax;
-			RepeatMin = repeatMin;
-			Type = type;
+			_children = children;
+			_ranges = ranges;
+			_repeatMax = repeatMax;
+			_repeatMin = repeatMin;
+			_type = type;
 		}
 
 		/// <Summary>
@@ -55,7 +55,7 @@ namespace Mure.Compilers.Pattern
 		{
 			NonDeterministicNode<TValue> next;
 
-			switch (Type)
+			switch (_type)
 			{
 				case NodeType.Alternative:
 					//           /-- [child1] --\
@@ -64,7 +64,7 @@ namespace Mure.Compilers.Pattern
 
 					next = automata.PushEmpty();
 
-					foreach (var child in Children)
+					foreach (var child in _children)
 						child.ConnectTo(automata, parent).EpsilonTo(next);
 
 					break;
@@ -74,7 +74,7 @@ namespace Mure.Compilers.Pattern
 
 					next = automata.PushEmpty();
 
-					foreach (var range in Ranges)
+					foreach (var range in _ranges)
 						parent.BranchTo(range.Begin, range.End, next);
 
 					break;
@@ -85,19 +85,19 @@ namespace Mure.Compilers.Pattern
 					//                           \-- [child] --/ * infinite
 
 					// Convert until lower bound is reached
-					for (var i = 0; i < RepeatMin; ++i)
-						parent = Children[0].ConnectTo(automata, parent);
+					for (var i = 0; i < _repeatMin; ++i)
+						parent = _children[0].ConnectTo(automata, parent);
 
 					next = automata.PushEmpty();
 
 					parent.EpsilonTo(next);
 
 					// Bounded repeat sequence, perform conversion (max - min) times
-					if (RepeatMax >= 0)
+					if (_repeatMax >= 0)
 					{
-						for (var i = 0; i < RepeatMax - RepeatMin; ++i)
+						for (var i = 0; i < _repeatMax - _repeatMin; ++i)
 						{
-							parent = Children[0].ConnectTo(automata, parent);
+							parent = _children[0].ConnectTo(automata, parent);
 							parent.EpsilonTo(next);
 						}
 					}
@@ -105,7 +105,7 @@ namespace Mure.Compilers.Pattern
 					// Unbounded repeat sequence, loop converted state over itself
 					else
 					{
-						var loop = Children[0].ConnectTo(automata, parent);
+						var loop = _children[0].ConnectTo(automata, parent);
 
 						loop.EpsilonTo(parent);
 						loop.EpsilonTo(next);
@@ -118,7 +118,7 @@ namespace Mure.Compilers.Pattern
 
 					next = parent;
 
-					foreach (var child in Children)
+					foreach (var child in _children)
 						next = child.ConnectTo(automata, next);
 
 					break;

@@ -1,6 +1,6 @@
 namespace Mure.Compilers.Pattern
 {
-	readonly struct Lexem
+	internal readonly struct Lexem
 	{
 		public readonly char Replacement;
 		public readonly LexemType Type;

@@ -6,7 +6,7 @@ using Mure.Matchers;
 
 namespace Mure.Compilers
 {
-	static class GlobCompiler
+	internal static class GlobCompiler
 	{
 		public static readonly IMatcher<Lexem> Matcher;
 
@@ -112,9 +112,7 @@ namespace Mure.Compilers
 
 			// Allow first character of a class to be special "negate class" character
 			if (match.Value.Type == LexemType.Negate)
-			{
 				throw new NotImplementedException("negated character classes are not supported yet");
-			}
 
 			// Allow first (or post-negate) character of a class to be literal "end of class" character
 			if (match.Value.Type == LexemType.ClassEnd)
@@ -187,7 +185,7 @@ namespace Mure.Compilers
 		}
 	}
 
-	class GlobCompiler<TValue> : PatternCompiler<TValue>
+	internal class GlobCompiler<TValue> : PatternCompiler<TValue>
 	{
 		public GlobCompiler() :
 			base(GlobCompiler.Matcher)

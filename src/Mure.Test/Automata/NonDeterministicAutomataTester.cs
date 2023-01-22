@@ -4,7 +4,7 @@ using NUnit.Framework;
 
 namespace Mure.Test.Automata
 {
-	public class NonDeterministicAutomataTester
+	internal class NonDeterministicAutomataTester
 	{
 		[Test]
 		public void ConvertToDeterministicDetectConflict()

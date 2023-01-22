@@ -5,7 +5,7 @@ using Mure.Automata;
 
 namespace Mure.MatchIterators
 {
-	class AutomataMatchIterator<TValue> : IMatchIterator<TValue>
+	internal class AutomataMatchIterator<TValue> : IMatchIterator<TValue>
 	{
 		public int Position => _offset - _buffer.Count;
 
