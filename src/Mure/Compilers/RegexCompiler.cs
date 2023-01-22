@@ -7,7 +7,7 @@ using Mure.Matchers;
 
 namespace Mure.Compilers
 {
-	static class RegexCompiler
+	internal static class RegexCompiler
 	{
 		public static readonly IMatcher<Lexem> Matcher;
 
@@ -100,9 +100,7 @@ namespace Mure.Compilers
 
 			// Allow first character of a class to be special "negate class" character
 			if (match.Value.Type == LexemType.Negate)
-			{
 				throw new NotImplementedException("negated character classes are not supported yet");
-			}
 
 			// Allow first (or post-negate) character of a class to be literal "end of class" character
 			if (match.Value.Type == LexemType.ClassEnd)
@@ -145,23 +143,12 @@ namespace Mure.Compilers
 				if (match.Value.Type == LexemType.Range)
 				{
 					match = NextOrThrow(iterator);
-
-					switch (match.Value.Type)
+					end = match.Value.Type switch
 					{
-						case LexemType.End:
-							throw CreateException("unfinished characters class", iterator.Position);
-
-						case LexemType.Escape:
-							end = match.Value.Replacement;
-
-							break;
-
-						default:
-							end = match.Capture[0];
-
-							break;
-
-					}
+						LexemType.End => throw CreateException("unfinished characters class", iterator.Position),
+						LexemType.Escape => match.Value.Replacement,
+						_ => match.Capture[0]
+					};
 
 					match = NextOrThrow(iterator);
 				}
@@ -215,7 +202,7 @@ namespace Mure.Compilers
 			return (min, max);
 		}
 
-		public static (Node, Match<Lexem>) MatchSequence(IMatchIterator<Lexem> iterator, Match<Lexem> match, bool atTopLevel)
+		private static (Node, Match<Lexem>) MatchSequence(IMatchIterator<Lexem> iterator, Match<Lexem> match, bool atTopLevel)
 		{
 			var sequenceNodes = new List<Node>();
 
@@ -320,7 +307,7 @@ namespace Mure.Compilers
 		}
 	}
 
-	class RegexCompiler<TValue> : PatternCompiler<TValue>
+	internal class RegexCompiler<TValue> : PatternCompiler<TValue>
 	{
 		public RegexCompiler() :
 			base(RegexCompiler.Matcher)

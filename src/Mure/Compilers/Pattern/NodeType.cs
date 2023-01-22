@@ -1,8 +1,7 @@
 namespace Mure.Compilers.Pattern
 {
-	enum NodeType
+	internal enum NodeType
 	{
-		Undefined,
 		Alternative,
 		Character,
 		Repeat,

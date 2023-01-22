@@ -1,6 +1,6 @@
 namespace Mure.Compilers.Pattern
 {
-	enum LexemType
+	internal enum LexemType
 	{
 		End,
 		Alternative,

@@ -145,7 +145,7 @@ namespace Mure.Automata
 		/// </Summary>
 		private int CreateState(List<DeterministicState<TValue>> states, IEnumerable<int> indices)
 		{
-			var values = indices.SelectMany(index => GetAllValuesOf(index)).ToArray();
+			var values = indices.SelectMany(GetAllValuesOf).ToArray();
 
 			if (values.Length > 1)
 				throw new InvalidOperationException($"transition collision between multiple values: {string.Join(", ", values)}");
@@ -160,17 +160,23 @@ namespace Mure.Automata
 
 		private IEnumerable<Branch> GetAllBranchesOf(int index)
 		{
-			return GetAllTargetsOf(index).SelectMany(index => _states[index].Branches);
+			return GetAllTargetsOf(index)
+				.SelectMany(targetIndex => _states[targetIndex].Branches);
 		}
 
 		private IEnumerable<int> GetAllTargetsOf(int index)
 		{
-			return _states[index].Epsilons.SelectMany(target => GetAllTargetsOf(target)).Concat(new[] { index }).Distinct();
+			return _states[index].Epsilons
+				.SelectMany(GetAllTargetsOf)
+				.Concat(new[] { index })
+				.Distinct();
 		}
 
 		private IEnumerable<TValue> GetAllValuesOf(int index)
 		{
-			return GetAllTargetsOf(index).Where(index => _states[index].HasValue).Select(index => _states[index].Value!);
+			return GetAllTargetsOf(index)
+				.Where(targetIndex => _states[targetIndex].HasValue)
+				.Select(targetIndex => _states[targetIndex].Value!);
 		}
 
 		/// <Summary>

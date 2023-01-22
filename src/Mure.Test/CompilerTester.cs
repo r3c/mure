@@ -5,7 +5,7 @@ using NUnit.Framework;
 
 namespace Mure.Test
 {
-	class CompilerTester
+	internal class CompilerTester
 	{
 		[TestCase("[]]", "", null)]
 		[TestCase("[]]", "]", "]")]
@@ -99,13 +99,13 @@ namespace Mure.Test
 			CompileGlobAndAssert(pattern, subject, capture);
 		}
 
-		[TestCase("1\t+\n1", "Integer,Plus,Integer,EOF")]
-		[TestCase("1 + (2 - 3)", "Integer,Plus,ParenthesisBegin,Integer,Minus,Integer,ParenthesisEnd,EOF")]
+		[TestCase("1\t+\n1", "Integer,Plus,Integer,End")]
+		[TestCase("1 + (2 - 3)", "Integer,Plus,ParenthesisBegin,Integer,Minus,Integer,ParenthesisEnd,End")]
 		public void CreateFromRegex_IterateLexem(string expression, string expectedLexems)
 		{
 			var matcher = Compiler
 				.CreateFromRegex<Lexem?>()
-				.AddEndOfFile(Lexem.EOF)
+				.AddEndOfFile(Lexem.End)
 				.AddPattern("[0-9]+", Lexem.Integer)
 				.AddPattern("\\+", Lexem.Plus)
 				.AddPattern("-", Lexem.Minus)
@@ -363,9 +363,9 @@ namespace Mure.Test
 			CompileAndAssert(compiler, subject, capture);
 		}
 
-		private static void CompileAndAssert(ICompiler<string, bool> compiler, string subject, string capture)
+		private static void CompileAndAssert(ICompiler<string, bool> compiler, string subject, string? capture)
 		{
-			var expected = capture != null;
+			var expected = capture is not null;
 			var matcher = compiler.Compile();
 
 			using var reader = new StringReader(subject);
@@ -377,9 +377,9 @@ namespace Mure.Test
 			Assert.That(match.Value, Is.EqualTo(expected));
 		}
 
-		public enum Lexem
+		private enum Lexem
 		{
-			EOF,
+			End,
 			Integer,
 			Plus,
 			Minus,

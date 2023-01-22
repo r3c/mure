@@ -4,7 +4,7 @@ using Mure.MatchIterators;
 
 namespace Mure.Matchers
 {
-	class AutomataMatcher<TValue> : IMatcher<TValue>
+	internal class AutomataMatcher<TValue> : IMatcher<TValue>
 	{
 		private readonly DeterministicAutomata<TValue> _automata;
 

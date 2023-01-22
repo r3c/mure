@@ -1,6 +1,6 @@
 namespace Mure.Compilers.Pattern
 {
-	readonly struct NodeRange
+	internal readonly struct NodeRange
 	{
 		public readonly char Begin;
 		public readonly char End;
