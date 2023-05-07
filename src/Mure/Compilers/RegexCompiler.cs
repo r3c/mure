@@ -12,6 +12,8 @@ namespace Mure.Compilers
 	{
 		public static readonly IMatcher<Lexem> Matcher;
 
+		private static readonly Node Wildcard = Node.CreateCharacter(new[] { new NodeRange(char.MinValue, char.MaxValue) });
+
 		static RegexCompiler()
 		{
 			var automata = new NonDeterministicAutomata<Lexem>();
@@ -259,7 +261,7 @@ namespace Mure.Compilers
 						break;
 
 					case LexemType.Wildcard:
-						node = Node.CreateCharacter(new[] { new NodeRange(char.MinValue, char.MaxValue) });
+						node = Wildcard;
 						nextMatch = NextOrThrow(iterator);
 
 						break;
