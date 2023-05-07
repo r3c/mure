@@ -1,5 +1,6 @@
 /.vs/
 /.vscode/
+/src/.idea/
 /src/.vs/
 bin/
 obj/
