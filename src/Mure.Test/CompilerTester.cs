@@ -158,6 +158,7 @@ namespace Mure.Test
 		}
 
 		[TestCase("[]]", "", null)]
+		[TestCase("[]]", "a", null)]
 		[TestCase("[]]", "]", "]")]
 
 		[TestCase("[a]", "", null)]
@@ -208,6 +209,35 @@ namespace Mure.Test
 		[TestCase("[a-c]1[d-f]2", "c1f2y", "c1f2")]
 		[TestCase("[a-c]1[d-f]2", "a1b2", null)]
 		[TestCase("[a-c]1[d-f]2", "d1e2", null)]
+
+		[TestCase("[b-dc-e]", "a", null)]
+		[TestCase("[b-dc-e]", "b", "b")]
+		[TestCase("[b-dc-e]", "c", "c")]
+		[TestCase("[b-dc-e]", "d", "d")]
+		[TestCase("[b-dc-e]", "e", "e")]
+		[TestCase("[b-dc-e]", "f", null)]
+
+		[TestCase("[^]]", "", null)]
+		[TestCase("[^]]", "a", "a")]
+		[TestCase("[^]]", "]", null)]
+
+		[TestCase("[^a]", "", null)]
+		[TestCase("[^a]", "a", null)]
+		[TestCase("[^a]", "b", "b")]
+
+		[TestCase("[^b-c]", "", null)]
+		[TestCase("[^b-c]", "a", "a")]
+		[TestCase("[^b-c]", "b", null)]
+		[TestCase("[^b-c]", "c", null)]
+		[TestCase("[^b-c]", "d", "d")]
+
+		[TestCase("[^b-dc-e]", "", null)]
+		[TestCase("[^b-dc-e]", "a", "a")]
+		[TestCase("[^b-dc-e]", "b", null)]
+		[TestCase("[^b-dc-e]", "c", null)]
+		[TestCase("[^b-dc-e]", "d", null)]
+		[TestCase("[^b-dc-e]", "e", null)]
+		[TestCase("[^b-dc-e]", "f", "f")]
 		public void CreateFromRegex_MatchClass(string pattern, string subject, string capture)
 		{
 			CompileRegexAndAssert(pattern, subject, capture);
@@ -261,6 +291,14 @@ namespace Mure.Test
 		[TestCase("[0-9]{0,2}(a|b){1,2}", "45a", "45a")]
 		[TestCase("[0-9]{0,2}(a|b){1,2}", "782bb", null)]
 		[TestCase("[0-9]{0,2}(a|b){1,2}", "72", null)]
+		[TestCase("[^0-9]{1,2}[0-9]{1,2}", "1", null)]
+		[TestCase("[^0-9]{1,2}[0-9]{1,2}", "a", null)]
+		[TestCase("[^0-9]{1,2}[0-9]{1,2}", "a1", "a1")]
+		[TestCase("[^0-9]{1,2}[0-9]{1,2}", "a12", "a12")]
+		[TestCase("[^0-9]{1,2}[0-9]{1,2}", "ab1", "ab1")]
+		[TestCase("[^0-9]{1,2}[0-9]{1,2}", "ab12", "ab12")]
+		[TestCase("[^0-9]{1,2}[0-9]{1,2}", "ab123", "ab12")]
+		[TestCase("[^0-9]{1,2}[0-9]{1,2}", "abc12", null)]
 		[TestCase("a(b(c){3}d){2}e", "abcccdbcccde", "abcccdbcccde")]
 		[TestCase("(a|b)(c|d)", "ab", null)]
 		[TestCase("(a|b)(c|d)", "ac", "ac")]

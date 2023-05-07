@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using Mure.Automata;
 using Mure.Compilers.Pattern;
@@ -64,12 +65,12 @@ namespace Mure.Compilers
 			Matcher = new AutomataMatcher<Lexem>(character.ToDeterministic());
 		}
 
-		public static Match<Lexem> NextOrThrow(IMatchIterator<Lexem> iterator)
+		public static Node Match(IMatchIterator<Lexem> iterator)
 		{
-			if (!iterator.TryMatchNext(out var match))
-				throw CreateException("unrecognized character", iterator.Position);
+			var match = NextOrThrow(iterator);
+			var (node, _) = MatchAlternative(iterator, match, true);
 
-			return match;
+			return node;
 		}
 
 		private static Exception CreateException(string message, int position)
@@ -77,7 +78,7 @@ namespace Mure.Compilers
 			return new ArgumentException($"{message} at position {position}");
 		}
 
-		public static (Node, Match<Lexem>) MatchAlternative(IMatchIterator<Lexem> iterator, Match<Lexem> match, bool atTopLevel)
+		private static (Node, Match<Lexem>) MatchAlternative(IMatchIterator<Lexem> iterator, Match<Lexem> match, bool atTopLevel)
 		{
 			var alternativeNodes = new List<Node>();
 
@@ -96,11 +97,16 @@ namespace Mure.Compilers
 
 		private static Node MatchClass(IMatchIterator<Lexem> iterator, Match<Lexem> match)
 		{
+			var negated = false;
 			var ranges = new List<NodeRange>();
 
 			// Allow first character of a class to be special "negate class" character
 			if (match.Value.Type == LexemType.Negate)
-				throw new NotImplementedException("negated character classes are not supported yet");
+			{
+				negated = true;
+
+				match = NextOrThrow(iterator);
+			}
 
 			// Allow first (or post-negate) character of a class to be literal "end of class" character
 			if (match.Value.Type == LexemType.ClassEnd)
@@ -123,7 +129,7 @@ namespace Mure.Compilers
 						throw CreateException("unfinished characters class", iterator.Position);
 
 					case LexemType.ClassEnd:
-						return Node.CreateCharacter(ranges);
+						return Node.CreateCharacter(negated ? NegateRanges(ranges) : ranges);
 
 					case LexemType.Escape:
 						begin = match.Value.Replacement;
@@ -305,6 +311,34 @@ namespace Mure.Compilers
 				sequenceNodes.Add(Node.CreateRepeat(node, min, max));
 			}
 		}
+
+		private static IReadOnlyList<NodeRange> NegateRanges(IEnumerable<NodeRange> ranges)
+		{
+			var negatedRanges = new List<NodeRange>();
+			var orderedRanges = ranges.OrderBy(range => range.Begin).ToList();
+			var previous = char.MinValue;
+
+			foreach (var range in orderedRanges)
+			{
+				if (previous < range.Begin)
+					negatedRanges.Add(new NodeRange(previous, (char)(range.Begin - 1)));
+
+				previous = range.End < char.MaxValue ? (char)(range.End + 1) : char.MaxValue;
+			}
+
+			if (previous < char.MaxValue)
+				negatedRanges.Add(new NodeRange(previous, char.MaxValue));
+
+			return negatedRanges;
+		}
+
+		private static Match<Lexem> NextOrThrow(IMatchIterator<Lexem> iterator)
+		{
+			if (!iterator.TryMatchNext(out var match))
+				throw CreateException("unrecognized character", iterator.Position);
+
+			return match;
+		}
 	}
 
 	internal class RegexCompiler<TValue> : PatternCompiler<TValue>
@@ -316,9 +350,7 @@ namespace Mure.Compilers
 
 		protected override Node CreateGraph(IMatchIterator<Lexem> iterator)
 		{
-			var (node, _) = RegexCompiler.MatchAlternative(iterator, RegexCompiler.NextOrThrow(iterator), true);
-
-			return node;
+			return RegexCompiler.Match(iterator);
 		}
 	}
 }
