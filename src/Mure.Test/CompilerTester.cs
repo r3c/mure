@@ -99,22 +99,22 @@ namespace Mure.Test
 			CompileGlobAndAssert(pattern, subject, capture);
 		}
 
-		[TestCase("1\t+\n1", "Integer,Plus,Integer,End")]
-		[TestCase("1 + (2 - 3)", "Integer,Plus,ParenthesisBegin,Integer,Minus,Integer,ParenthesisEnd,End")]
-		public void CreateFromRegex_IterateLexem(string expression, string expectedLexems)
+		[TestCase("1\t+\n1", "Integer(1),Plus,Integer(1),End")]
+		[TestCase("1 + (2 - 3)", "Integer(1),Plus,ParenthesisBegin,Integer(2),Minus,Integer(3),ParenthesisEnd,End")]
+		public void CreateFromRegex_IterateExpression(string expression, string expected)
 		{
 			var matcher = Compiler
-				.CreateFromRegex<Lexem?>()
-				.AddEndOfFile(Lexem.End)
-				.AddPattern("[0-9]+", Lexem.Integer)
-				.AddPattern("\\+", Lexem.Plus)
-				.AddPattern("-", Lexem.Minus)
-				.AddPattern("\\(", Lexem.ParenthesisBegin)
-				.AddPattern("\\)", Lexem.ParenthesisEnd)
+				.CreateFromRegex<Func<string, string>?>()
+				.AddEndOfFile(_ => "End")
+				.AddPattern("[0-9]+", capture => $"Integer({capture})")
+				.AddPattern("\\+", _ => "Plus")
+				.AddPattern("-", _ => "Minus")
+				.AddPattern("\\(", _ => "ParenthesisBegin")
+				.AddPattern("\\)", _ => "ParenthesisEnd")
 				.AddPattern("[\n\r\t ]+", null)
 				.Compile();
 
-			var values = new List<Lexem>();
+			var values = new List<string>();
 
 			using (var reader = new StringReader(expression))
 			{
@@ -125,11 +125,11 @@ namespace Mure.Test
 					if (match.Value is null)
 						continue;
 
-					values.Add(match.Value.Value);
+					values.Add(match.Value(match.Capture));
 				}
 			}
 
-			Assert.That(string.Join(",", values), Is.EqualTo(expectedLexems));
+			Assert.That(string.Join(",", values), Is.EqualTo(expected));
 		}
 
 		[TestCase("[a", "unfinished characters class at position 3")]
@@ -413,16 +413,6 @@ namespace Mure.Test
 			Assert.That(iterator.TryMatchNext(out var match), Is.EqualTo(expected));
 			Assert.That(match.Capture, Is.EqualTo(capture));
 			Assert.That(match.Value, Is.EqualTo(expected));
-		}
-
-		private enum Lexem
-		{
-			End,
-			Integer,
-			Plus,
-			Minus,
-			ParenthesisBegin,
-			ParenthesisEnd
 		}
 	}
 }
