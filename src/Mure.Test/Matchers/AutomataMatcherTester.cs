@@ -114,10 +114,10 @@ namespace Mure.Test.Matchers
 
 			Assert.That(deterministic.Error, Is.EqualTo(ConversionError.None));
 
-			var scanner = new AutomataMatcher<TValue>(deterministic.Result);
-			var matcher = scanner.Open(reader);
+			var matcher = new AutomataMatcher<TValue>(deterministic.Result);
+			var iterator = matcher.Open(reader);
 
-			Assert.That(matcher.TryMatchNext(out var match), Is.EqualTo(success));
+			Assert.That(iterator.TryMatchNext(out var match), Is.EqualTo(success));
 			Assert.That(match.Capture, Is.EqualTo(expectedCapture));
 			Assert.That(match.Value, Is.EqualTo(expectedValue));
 		}
