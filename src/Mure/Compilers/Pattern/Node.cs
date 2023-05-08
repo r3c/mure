@@ -51,9 +51,9 @@ namespace Mure.Compilers.Pattern
 		/// states connected to given parent state and return final state of
 		/// produced graph.
 		/// </Summary>
-		public NonDeterministicNode<TValue> ConnectTo<TValue>(NonDeterministicAutomata<TValue> automata, NonDeterministicNode<TValue> parent)
+		public int ConnectTo<TValue>(NonDeterministicAutomata<TValue> automata, int parent)
 		{
-			NonDeterministicNode<TValue> next;
+			int next;
 
 			switch (_type)
 			{
@@ -65,7 +65,11 @@ namespace Mure.Compilers.Pattern
 					next = automata.PushEmpty();
 
 					foreach (var child in _children)
-						child.ConnectTo(automata, parent).EpsilonTo(next);
+					{
+						var branch = child.ConnectTo(automata, parent);
+
+						automata.EpsilonTo(branch, next);
+					}
 
 					break;
 
@@ -75,7 +79,7 @@ namespace Mure.Compilers.Pattern
 					next = automata.PushEmpty();
 
 					foreach (var range in _ranges)
-						parent.BranchTo(range.Begin, range.End, next);
+						automata.BranchTo(parent, range.Begin, range.End, next);
 
 					break;
 
@@ -90,7 +94,7 @@ namespace Mure.Compilers.Pattern
 
 					next = automata.PushEmpty();
 
-					parent.EpsilonTo(next);
+					automata.EpsilonTo(parent, next);
 
 					// Bounded repeat sequence, perform conversion (max - min) times
 					if (_repeatMax >= 0)
@@ -98,7 +102,7 @@ namespace Mure.Compilers.Pattern
 						for (var i = 0; i < _repeatMax - _repeatMin; ++i)
 						{
 							parent = _children[0].ConnectTo(automata, parent);
-							parent.EpsilonTo(next);
+							automata.EpsilonTo(parent, next);
 						}
 					}
 
@@ -107,8 +111,8 @@ namespace Mure.Compilers.Pattern
 					{
 						var loop = _children[0].ConnectTo(automata, parent);
 
-						loop.EpsilonTo(parent);
-						loop.EpsilonTo(next);
+						automata.EpsilonTo(loop, parent);
+						automata.EpsilonTo(loop, next);
 					}
 
 					return next;

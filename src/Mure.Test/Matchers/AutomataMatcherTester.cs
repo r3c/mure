@@ -24,11 +24,11 @@ namespace Mure.Test.Matchers
 			var q1 = automata.PushEmpty();
 			var q2 = automata.PushValue(17);
 
-			q0.BranchTo('a', 'b', q0);
-			q0.BranchTo('a', 'a', q1);
-			q1.BranchTo('b', 'b', q2);
+			automata.BranchTo(q0, 'a', 'b', q0);
+			automata.BranchTo(q0, 'a', 'a', q1);
+			automata.BranchTo(q1, 'b', 'b', q2);
 
-			ConvertAndMatch(q0, pattern, success, expectedCapture, expectedValue);
+			ConvertAndMatch(automata, q0, pattern, success, expectedCapture, expectedValue);
 		}
 
 		[TestCase("a", false, null, 0)]
@@ -61,13 +61,13 @@ namespace Mure.Test.Matchers
 			var q3 = automata.PushValue(17);
 			var q4 = automata.PushValue(42);
 
-			q0.BranchTo('a', 'b', q0);
-			q0.BranchTo('a', 'c', q1);
-			q0.BranchTo('b', 'd', q2);
-			q1.BranchTo('e', 'e', q3);
-			q2.BranchTo('f', 'f', q4);
+			automata.BranchTo(q0, 'a', 'b', q0);
+			automata.BranchTo(q0, 'a', 'c', q1);
+			automata.BranchTo(q0, 'b', 'd', q2);
+			automata.BranchTo(q1, 'e', 'e', q3);
+			automata.BranchTo(q2, 'f', 'f', q4);
 
-			ConvertAndMatch(q0, pattern, success, expectedCapture, expectedValue);
+			ConvertAndMatch(automata, q0, pattern, success, expectedCapture, expectedValue);
 		}
 
 		[TestCase("a", false, null, 0)]
@@ -84,11 +84,11 @@ namespace Mure.Test.Matchers
 			var q1 = automata.PushEmpty();
 			var q2 = automata.PushValue(17);
 
-			q0.EpsilonTo(q1);
-			q0.BranchTo('a', 'a', q0);
-			q1.BranchTo('b', 'b', q2);
+			automata.EpsilonTo(q0, q1);
+			automata.BranchTo(q0, 'a', 'a', q0);
+			automata.BranchTo(q1, 'b', 'b', q2);
 
-			ConvertAndMatch(q0, pattern, success, expectedCapture, expectedValue);
+			ConvertAndMatch(automata, q0, pattern, success, expectedCapture, expectedValue);
 		}
 
 		[Test]
@@ -99,21 +99,22 @@ namespace Mure.Test.Matchers
 			var q1 = automata.PushEmpty();
 			var q2 = automata.PushValue(22);
 
-			q0.BranchTo('a', 'a', q1);
-			q1.EpsilonTo(q2);
+			automata.BranchTo(q0, 'a', 'a', q1);
+			automata.EpsilonTo(q1, q2);
 
-			ConvertAndMatch(q0, "a", true, "a", 22);
+			ConvertAndMatch(automata, q0, "a", true, "a", 22);
 		}
 
-		private static void ConvertAndMatch<TValue>(NonDeterministicNode<TValue> node, string pattern, bool success, string? expectedCapture, TValue? expectedValue) where TValue : struct
+		private static void ConvertAndMatch<TValue>(NonDeterministicAutomata<TValue> automata, int start,
+			string pattern, bool success, string? expectedCapture, TValue? expectedValue) where TValue : struct
 		{
 			using var reader = new StringReader(pattern);
 
-			var automata = node.ToDeterministic();
+			var deterministic = automata.ToDeterministic(start);
 
-			Assert.That(automata.Error, Is.EqualTo(ConversionError.None));
+			Assert.That(deterministic.Error, Is.EqualTo(ConversionError.None));
 
-			var scanner = new AutomataMatcher<TValue>(automata.Result);
+			var scanner = new AutomataMatcher<TValue>(deterministic.Result);
 			var matcher = scanner.Open(reader);
 
 			Assert.That(matcher.TryMatchNext(out var match), Is.EqualTo(success));
