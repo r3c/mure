@@ -41,7 +41,12 @@ namespace Mure.Compilers
 			character.BranchTo(']', ']', automata.PushValue(new Lexem(LexemType.ClassEnd)));
 			character.BranchTo('^', char.MaxValue, literal);
 
-			Matcher = new AutomataMatcher<Lexem>(character.ToDeterministic());
+			var deterministic = character.ToDeterministic();
+
+			if (deterministic.Error != ConversionError.None)
+				throw new InvalidOperationException("internal error when initializing glob compiler");
+
+			Matcher = new AutomataMatcher<Lexem>(deterministic.Result);
 		}
 
 		public static Node MatchSequence(IMatchIterator<Lexem> iterator, Match<Lexem> match, bool atTopLevel)

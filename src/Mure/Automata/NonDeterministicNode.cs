@@ -22,7 +22,7 @@
 			_automata.EpsilonTo(_index, target._index);
 		}
 
-		public DeterministicAutomata<TValue> ToDeterministic()
+		public ConversionResult<DeterministicAutomata<TValue>, TValue> ToDeterministic()
 		{
 			return _automata.ToDeterministic(_index);
 		}

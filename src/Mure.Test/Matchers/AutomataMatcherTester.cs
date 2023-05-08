@@ -109,7 +109,11 @@ namespace Mure.Test.Matchers
 		{
 			using var reader = new StringReader(pattern);
 
-			var scanner = new AutomataMatcher<TValue>(node.ToDeterministic());
+			var automata = node.ToDeterministic();
+
+			Assert.That(automata.Error, Is.EqualTo(ConversionError.None));
+
+			var scanner = new AutomataMatcher<TValue>(automata.Result);
 			var matcher = scanner.Open(reader);
 
 			Assert.That(matcher.TryMatchNext(out var match), Is.EqualTo(success));

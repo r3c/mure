@@ -6,8 +6,6 @@ namespace Mure.Automata
 {
 	internal class NonDeterministicAutomata<TValue>
 	{
-		public IReadOnlyList<NonDeterministicState<TValue>> States => _states;
-
 		private readonly List<NonDeterministicState<TValue>> _states = new();
 
 		public void BranchTo(int source, int begin, int end, int target)
@@ -41,19 +39,33 @@ namespace Mure.Automata
 			return new NonDeterministicNode<TValue>(this, index);
 		}
 
-		public DeterministicAutomata<TValue> ToDeterministic(int index)
+		public ConversionResult<DeterministicAutomata<TValue>, TValue> ToDeterministic(int index)
 		{
 			var states = new List<DeterministicState<TValue>>();
-			var start = GetOrConvertState(states, new[] { index }, new List<Equivalence>());
+			var start = GetOrConvertStates(states, new List<Equivalence>(), new[] { index });
 
-			return new DeterministicAutomata<TValue>(states, start);
+			if (start.Error != ConversionError.None)
+				return new ConversionResult<DeterministicAutomata<TValue>, TValue>(start.Error, default, start.Values);
+
+			var automata = new DeterministicAutomata<TValue>(states, start.Result);
+
+			return ConversionResult<DeterministicAutomata<TValue>, TValue>.Success(automata);
 		}
 
 		/// <Summary>
 		/// https://www.geeksforgeeks.org/theory-of-computation-conversion-from-nfa-to-dfa/
 		/// </Summary>
-		private void ConnectToStates(List<DeterministicState<TValue>> states, int index, IReadOnlyList<int> indices, List<Equivalence> equivalences)
+		private ConversionResult<int, TValue> ConvertStates(List<DeterministicState<TValue>> states,
+			List<Equivalence> equivalences, IReadOnlyList<int> indices)
 		{
+			// Create new state, save it to known states and connect to child states
+			var stateIndex = CreateState(states, indices);
+
+			if (stateIndex.Error != ConversionError.None)
+				return stateIndex;
+
+			equivalences.Add(new Equivalence(indices, stateIndex.Result));
+
 			var branches = indices
 				.SelectMany(GetAllBranchesOf)
 				.OrderBy(branch => branch, BranchComparer.Instance)
@@ -128,34 +140,40 @@ namespace Mure.Automata
 				}
 
 				// Recursively convert target states to deterministic and connect current one to it
-				var state = states[index];
+				var state = states[stateIndex.Result];
 
 				if (state.Branches.Count > 0 && branch.Begin <= state.Branches.Last().End)
 					throw new ArgumentOutOfRangeException(nameof(branch.Begin), branch.Begin, "range overlap");
 
-				var target = GetOrConvertState(states, targets, equivalences);
+				var target = GetOrConvertStates(states, equivalences, targets);
 
-				state.Branches.Add(new Branch(branch.Begin, end, target));
+				if (target.Error != ConversionError.None)
+					return target;
+
+				state.Branches.Add(new Branch(branch.Begin, end, target.Result));
 			}
+
+			return stateIndex;
 		}
 
 		/// <Summary>
 		/// Create new deterministic state equivalent to given set of input
 		/// non-deterministic ones.
 		/// </Summary>
-		private int CreateState(List<DeterministicState<TValue>> states, IEnumerable<int> indices)
+		private ConversionResult<int, TValue> CreateState(ICollection<DeterministicState<TValue>> states,
+			IEnumerable<int> indices)
 		{
 			var values = indices.SelectMany(GetAllValuesOf).ToArray();
 
 			if (values.Length > 1)
-				throw new InvalidOperationException($"transition collision between multiple values: {string.Join(", ", values)}");
+				return ConversionResult<int, TValue>.Collision(values);
 
 			var state = values.Length > 0 ? new DeterministicState<TValue>(values[0], true) : new DeterministicState<TValue>(default, false);
 			var index = states.Count;
 
 			states.Add(state);
 
-			return index;
+			return ConversionResult<int, TValue>.Success(index);
 		}
 
 		private IEnumerable<Branch> GetAllBranchesOf(int index)
@@ -184,22 +202,16 @@ namespace Mure.Automata
 		/// non-deterministic states in currently saved states, if any, or
 		/// start conversion of a new one otherwise.
 		/// </Summary>
-		private int GetOrConvertState(List<DeterministicState<TValue>> states, IReadOnlyList<int> indices, List<Equivalence> equivalences)
+		private ConversionResult<int, TValue> GetOrConvertStates(List<DeterministicState<TValue>> states,
+			List<Equivalence> equivalences, IReadOnlyList<int> indices)
 		{
 			var index = equivalences.FindIndex(equivalence => equivalence.Sources.SetEquals(indices));
 
-			// Match from previous conversion was found: return it unchanged
-			if (index >= 0)
-				return equivalences[index].Target;
-
-			// No match was found: create new state, save it to known states and connect to child states
-			var result = CreateState(states, indices);
-
-			equivalences.Add(new Equivalence(indices, result));
-
-			ConnectToStates(states, result, indices, equivalences);
-
-			return result;
+			return index >= 0
+				// Match from previous conversion was found: return it unchanged
+				? ConversionResult<int, TValue>.Success(equivalences[index].Target)
+				// No match was found: create a new one
+				: ConvertStates(states, equivalences, indices);
 		}
 
 		private readonly struct Equivalence
