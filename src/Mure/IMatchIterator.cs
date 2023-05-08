@@ -1,9 +1,8 @@
-namespace Mure
-{
-	public interface IMatchIterator<TValue>
-	{
-		public int Position { get; }
+namespace Mure;
 
-		bool TryMatchNext(out Match<TValue> match);
-	}
+public interface IMatchIterator<TValue>
+{
+	public int Position { get; }
+
+	bool TryMatchNext(out Match<TValue> match);
 }

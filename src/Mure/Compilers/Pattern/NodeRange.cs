@@ -1,14 +1,13 @@
-namespace Mure.Compilers.Pattern
-{
-	internal readonly struct NodeRange
-	{
-		public readonly char Begin;
-		public readonly char End;
+namespace Mure.Compilers.Pattern;
 
-		public NodeRange(char begin, char end)
-		{
-			Begin = begin;
-			End = end;
-		}
+internal readonly struct NodeRange
+{
+	public readonly char Begin;
+	public readonly char End;
+
+	public NodeRange(char begin, char end)
+	{
+		Begin = begin;
+		End = end;
 	}
 }

@@ -1,51 +1,50 @@
 ﻿using System.Collections.Generic;
 
-namespace Mure.Automata
+namespace Mure.Automata;
+
+internal readonly struct DeterministicAutomata<TValue>
 {
-	internal readonly struct DeterministicAutomata<TValue>
+	public readonly IReadOnlyList<DeterministicState<TValue>> States;
+	public readonly int Start;
+
+	public DeterministicAutomata(IReadOnlyList<DeterministicState<TValue>> states, int start)
 	{
-		public readonly IReadOnlyList<DeterministicState<TValue>> States;
-		public readonly int Start;
+		States = states;
+		Start = start;
+	}
 
-		public DeterministicAutomata(IReadOnlyList<DeterministicState<TValue>> states, int start)
+	public bool TryFollow(int current, int key, out int next)
+	{
+		var state = States[current];
+		var match = state.Branches.BinarySearch(new Branch(key, default, default), BranchComparer.Instance);
+
+		if (match >= 0)
 		{
-			States = states;
-			Start = start;
+			next = state.Branches[match].Target;
+
+			return true;
 		}
 
-		public bool TryFollow(int current, int key, out int next)
+		match = ~match;
+
+		if (match > 0 && state.Branches[match - 1].Begin <= key && key <= state.Branches[match - 1].End)
 		{
-			var state = States[current];
-			var match = state.Branches.BinarySearch(new Branch(key, default, default), BranchComparer.Instance);
+			next = state.Branches[match - 1].Target;
 
-			if (match >= 0)
-			{
-				next = state.Branches[match].Target;
-
-				return true;
-			}
-
-			match = ~match;
-
-			if (match > 0 && state.Branches[match - 1].Begin <= key && key <= state.Branches[match - 1].End)
-			{
-				next = state.Branches[match - 1].Target;
-
-				return true;
-			}
-
-			next = default;
-
-			return false;
+			return true;
 		}
 
-		public bool TryGetValue(int index, out TValue value)
-		{
-			var state = States[index];
+		next = default;
 
-			value = state.HasValue ? state.Value! : default!;
+		return false;
+	}
 
-			return state.HasValue;
-		}
+	public bool TryGetValue(int index, out TValue value)
+	{
+		var state = States[index];
+
+		value = state.HasValue ? state.Value! : default!;
+
+		return state.HasValue;
 	}
 }

@@ -4,202 +4,201 @@ using Mure.Automata;
 using Mure.Compilers.Pattern;
 using Mure.Matchers;
 
-namespace Mure.Compilers
+namespace Mure.Compilers;
+
+internal static class GlobCompiler
 {
-	internal static class GlobCompiler
+	public static readonly IMatcher<Lexem> Matcher;
+
+	private static readonly Node Wildcard = Node.CreateCharacter(new[] { new NodeRange(char.MinValue, char.MaxValue) });
+
+	static GlobCompiler()
 	{
-		public static readonly IMatcher<Lexem> Matcher;
+		var automata = new NonDeterministicAutomata<Lexem>();
+		var escape = automata.PushEmpty();
 
-		private static readonly Node Wildcard = Node.CreateCharacter(new[] { new NodeRange(char.MinValue, char.MaxValue) });
+		automata.BranchTo(escape, '*', '*', automata.PushValue(new Lexem(LexemType.Escape, '*')));
+		automata.BranchTo(escape, '?', '?', automata.PushValue(new Lexem(LexemType.Escape, '?')));
+		automata.BranchTo(escape, '[', '[', automata.PushValue(new Lexem(LexemType.Escape, '[')));
+		automata.BranchTo(escape, ']', ']', automata.PushValue(new Lexem(LexemType.Escape, ']')));
+		automata.BranchTo(escape, '\\', '\\', automata.PushValue(new Lexem(LexemType.Escape, '\\')));
 
-		static GlobCompiler()
+		var character = automata.PushEmpty();
+		var literal = automata.PushValue(new Lexem(LexemType.Literal));
+
+		automata.BranchTo(character, -1, -1, automata.PushValue(new Lexem(LexemType.End)));
+		automata.BranchTo(character, char.MinValue, ' ', literal);
+		automata.BranchTo(character, '!', '!', automata.PushValue(new Lexem(LexemType.Negate)));
+		automata.BranchTo(character, '"', ')', literal);
+		automata.BranchTo(character, '*', '*', automata.PushValue(new Lexem(LexemType.ZeroOrMore)));
+		automata.BranchTo(character, '+', ',', literal);
+		automata.BranchTo(character, '-', '-', automata.PushValue(new Lexem(LexemType.Range)));
+		automata.BranchTo(character, '.', '>', literal);
+		automata.BranchTo(character, '?', '?', automata.PushValue(new Lexem(LexemType.Wildcard)));
+		automata.BranchTo(character, '@', 'Z', literal);
+		automata.BranchTo(character, '[', '[', automata.PushValue(new Lexem(LexemType.ClassBegin)));
+		automata.BranchTo(character, '\\', '\\', escape);
+		automata.BranchTo(character, ']', ']', automata.PushValue(new Lexem(LexemType.ClassEnd)));
+		automata.BranchTo(character, '^', char.MaxValue, literal);
+
+		var deterministic = automata.ToDeterministic(character);
+
+		if (deterministic.Error != ConversionError.None)
+			throw new InvalidOperationException("internal error when initializing glob compiler");
+
+		Matcher = new AutomataMatcher<Lexem>(deterministic.Result);
+	}
+
+	public static Node MatchSequence(IMatchIterator<Lexem> iterator, Match<Lexem> match, bool atTopLevel)
+	{
+		var nodes = new List<Node>();
+
+		while (true)
 		{
-			var automata = new NonDeterministicAutomata<Lexem>();
-			var escape = automata.PushEmpty();
+			// Match literal character or character class
+			Node node;
 
-			automata.BranchTo(escape, '*', '*', automata.PushValue(new Lexem(LexemType.Escape, '*')));
-			automata.BranchTo(escape, '?', '?', automata.PushValue(new Lexem(LexemType.Escape, '?')));
-			automata.BranchTo(escape, '[', '[', automata.PushValue(new Lexem(LexemType.Escape, '[')));
-			automata.BranchTo(escape, ']', ']', automata.PushValue(new Lexem(LexemType.Escape, ']')));
-			automata.BranchTo(escape, '\\', '\\', automata.PushValue(new Lexem(LexemType.Escape, '\\')));
-
-			var character = automata.PushEmpty();
-			var literal = automata.PushValue(new Lexem(LexemType.Literal));
-
-			automata.BranchTo(character, -1, -1, automata.PushValue(new Lexem(LexemType.End)));
-			automata.BranchTo(character, char.MinValue, ' ', literal);
-			automata.BranchTo(character, '!', '!', automata.PushValue(new Lexem(LexemType.Negate)));
-			automata.BranchTo(character, '"', ')', literal);
-			automata.BranchTo(character, '*', '*', automata.PushValue(new Lexem(LexemType.ZeroOrMore)));
-			automata.BranchTo(character, '+', ',', literal);
-			automata.BranchTo(character, '-', '-', automata.PushValue(new Lexem(LexemType.Range)));
-			automata.BranchTo(character, '.', '>', literal);
-			automata.BranchTo(character, '?', '?', automata.PushValue(new Lexem(LexemType.Wildcard)));
-			automata.BranchTo(character, '@', 'Z', literal);
-			automata.BranchTo(character, '[', '[', automata.PushValue(new Lexem(LexemType.ClassBegin)));
-			automata.BranchTo(character, '\\', '\\', escape);
-			automata.BranchTo(character, ']', ']', automata.PushValue(new Lexem(LexemType.ClassEnd)));
-			automata.BranchTo(character, '^', char.MaxValue, literal);
-
-			var deterministic = automata.ToDeterministic(character);
-
-			if (deterministic.Error != ConversionError.None)
-				throw new InvalidOperationException("internal error when initializing glob compiler");
-
-			Matcher = new AutomataMatcher<Lexem>(deterministic.Result);
-		}
-
-		public static Node MatchSequence(IMatchIterator<Lexem> iterator, Match<Lexem> match, bool atTopLevel)
-		{
-			var nodes = new List<Node>();
-
-			while (true)
+			switch (match.Value.Type)
 			{
-				// Match literal character or character class
-				Node node;
+				case LexemType.ClassBegin:
+					node = MatchClass(iterator, NextOrThrow(iterator));
 
-				switch (match.Value.Type)
-				{
-					case LexemType.ClassBegin:
-						node = MatchClass(iterator, NextOrThrow(iterator));
+					break;
 
-						break;
+				case LexemType.End:
+					if (atTopLevel)
+						return Node.CreateSequence(nodes);
 
-					case LexemType.End:
-						if (atTopLevel)
-							return Node.CreateSequence(nodes);
+					throw CreateException("unfinished sequence", iterator.Position);
 
-						throw CreateException("unfinished sequence", iterator.Position);
+				case LexemType.Escape:
+					node = Node.CreateCharacter(match.Value.Replacement);
 
-					case LexemType.Escape:
-						node = Node.CreateCharacter(match.Value.Replacement);
+					break;
 
-						break;
+				case LexemType.Wildcard:
+					node = Wildcard;
 
-					case LexemType.Wildcard:
-						node = Wildcard;
+					break;
 
-						break;
+				case LexemType.ZeroOrMore:
+					node = Node.CreateRepeat(Wildcard, 0, -1);
 
-					case LexemType.ZeroOrMore:
-						node = Node.CreateRepeat(Wildcard, 0, -1);
+					break;
 
-						break;
+				default:
+					node = Node.CreateCharacter(match.Capture[0]);
 
-					default:
-						node = Node.CreateCharacter(match.Capture[0]);
-
-						break;
-				}
-
-				match = NextOrThrow(iterator);
-
-				nodes.Add(node);
-			}
-		}
-
-		public static Match<Lexem> NextOrThrow(IMatchIterator<Lexem> iterator)
-		{
-			if (!iterator.TryMatchNext(out var match))
-				throw CreateException("unrecognized character", iterator.Position);
-
-			return match;
-		}
-
-		private static Exception CreateException(string message, int position)
-		{
-			return new ArgumentException($"{message} at position {position}");
-		}
-
-		private static Node MatchClass(IMatchIterator<Lexem> iterator, Match<Lexem> match)
-		{
-			var ranges = new List<NodeRange>();
-
-			// Allow first character of a class to be special "negate class" character
-			if (match.Value.Type == LexemType.Negate)
-				throw new NotImplementedException("negated character classes are not supported yet");
-
-			// Allow first (or post-negate) character of a class to be literal "end of class" character
-			if (match.Value.Type == LexemType.ClassEnd)
-			{
-				ranges.Add(new NodeRange(match.Capture[0], match.Capture[0]));
-
-				match = NextOrThrow(iterator);
+					break;
 			}
 
-			while (true)
+			match = NextOrThrow(iterator);
+
+			nodes.Add(node);
+		}
+	}
+
+	public static Match<Lexem> NextOrThrow(IMatchIterator<Lexem> iterator)
+	{
+		if (!iterator.TryMatchNext(out var match))
+			throw CreateException("unrecognized character", iterator.Position);
+
+		return match;
+	}
+
+	private static Exception CreateException(string message, int position)
+	{
+		return new ArgumentException($"{message} at position {position}");
+	}
+
+	private static Node MatchClass(IMatchIterator<Lexem> iterator, Match<Lexem> match)
+	{
+		var ranges = new List<NodeRange>();
+
+		// Allow first character of a class to be special "negate class" character
+		if (match.Value.Type == LexemType.Negate)
+			throw new NotImplementedException("negated character classes are not supported yet");
+
+		// Allow first (or post-negate) character of a class to be literal "end of class" character
+		if (match.Value.Type == LexemType.ClassEnd)
+		{
+			ranges.Add(new NodeRange(match.Capture[0], match.Capture[0]));
+
+			match = NextOrThrow(iterator);
+		}
+
+		while (true)
+		{
+			// Match next character, which may later be considered as the
+			// beginning character of range
+			char begin;
+			char end;
+
+			switch (match.Value.Type)
 			{
-				// Match next character, which may later be considered as the
-				// beginning character of range
-				char begin;
-				char end;
+				case LexemType.End:
+					throw CreateException("unfinished characters class", iterator.Position);
+
+				case LexemType.ClassEnd:
+					return Node.CreateCharacter(ranges);
+
+				case LexemType.Escape:
+					begin = match.Value.Replacement;
+
+					break;
+
+				default:
+					begin = match.Capture[0];
+
+					break;
+			}
+
+			match = NextOrThrow(iterator);
+
+			// If next lexem defines a range (e.g. "a-z"), read next one to
+			// get end character for this range before registering it
+			if (match.Value.Type == LexemType.Range)
+			{
+				match = NextOrThrow(iterator);
 
 				switch (match.Value.Type)
 				{
 					case LexemType.End:
 						throw CreateException("unfinished characters class", iterator.Position);
 
-					case LexemType.ClassEnd:
-						return Node.CreateCharacter(ranges);
-
 					case LexemType.Escape:
-						begin = match.Value.Replacement;
+						end = match.Value.Replacement;
 
 						break;
 
 					default:
-						begin = match.Capture[0];
+						end = match.Capture[0];
 
 						break;
+
 				}
 
 				match = NextOrThrow(iterator);
-
-				// If next lexem defines a range (e.g. "a-z"), read next one to
-				// get end character for this range before registering it
-				if (match.Value.Type == LexemType.Range)
-				{
-					match = NextOrThrow(iterator);
-
-					switch (match.Value.Type)
-					{
-						case LexemType.End:
-							throw CreateException("unfinished characters class", iterator.Position);
-
-						case LexemType.Escape:
-							end = match.Value.Replacement;
-
-							break;
-
-						default:
-							end = match.Capture[0];
-
-							break;
-
-					}
-
-					match = NextOrThrow(iterator);
-				}
-
-				// Otherwise register transition from a single character
-				else
-					end = begin;
-
-				ranges.Add(new NodeRange(begin, end));
 			}
+
+			// Otherwise register transition from a single character
+			else
+				end = begin;
+
+			ranges.Add(new NodeRange(begin, end));
 		}
 	}
+}
 
-	internal class GlobCompiler<TValue> : PatternCompiler<TValue>
+internal class GlobCompiler<TValue> : PatternCompiler<TValue>
+{
+	public GlobCompiler() :
+		base(GlobCompiler.Matcher)
 	{
-		public GlobCompiler() :
-			base(GlobCompiler.Matcher)
-		{
-		}
+	}
 
-		protected override Node CreateGraph(IMatchIterator<Lexem> iterator)
-		{
-			return GlobCompiler.MatchSequence(iterator, GlobCompiler.NextOrThrow(iterator), true);
-		}
+	protected override Node CreateGraph(IMatchIterator<Lexem> iterator)
+	{
+		return GlobCompiler.MatchSequence(iterator, GlobCompiler.NextOrThrow(iterator), true);
 	}
 }

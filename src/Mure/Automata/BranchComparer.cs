@@ -1,14 +1,13 @@
 ﻿using System.Collections.Generic;
 
-namespace Mure.Automata
-{
-	internal class BranchComparer : IComparer<Branch>
-	{
-		public static readonly BranchComparer Instance = new();
+namespace Mure.Automata;
 
-		public int Compare(Branch x, Branch y)
-		{
-			return x.Begin.CompareTo(y.Begin);
-		}
+internal class BranchComparer : IComparer<Branch>
+{
+	public static readonly BranchComparer Instance = new();
+
+	public int Compare(Branch x, Branch y)
+	{
+		return x.Begin.CompareTo(y.Begin);
 	}
 }

@@ -1,24 +1,23 @@
-namespace Mure.Compilers.Pattern
+namespace Mure.Compilers.Pattern;
+
+internal enum LexemType
 {
-	internal enum LexemType
-	{
-		End,
-		Alternative,
-		ClassBegin,
-		ClassEnd,
-		Comma,
-		Digit,
-		Escape,
-		Literal,
-		Negate,
-		OneOrMore,
-		Range,
-		RepeatBegin,
-		RepeatEnd,
-		SequenceBegin,
-		SequenceEnd,
-		Wildcard,
-		ZeroOrMore,
-		ZeroOrOne
-	}
+	End,
+	Alternative,
+	ClassBegin,
+	ClassEnd,
+	Comma,
+	Digit,
+	Escape,
+	Literal,
+	Negate,
+	OneOrMore,
+	Range,
+	RepeatBegin,
+	RepeatEnd,
+	SequenceBegin,
+	SequenceEnd,
+	Wildcard,
+	ZeroOrMore,
+	ZeroOrOne
 }
