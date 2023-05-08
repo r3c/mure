@@ -17,31 +17,31 @@ namespace Mure.Compilers
 			var automata = new NonDeterministicAutomata<Lexem>();
 			var escape = automata.PushEmpty();
 
-			escape.BranchTo('*', '*', automata.PushValue(new Lexem(LexemType.Escape, '*')));
-			escape.BranchTo('?', '?', automata.PushValue(new Lexem(LexemType.Escape, '?')));
-			escape.BranchTo('[', '[', automata.PushValue(new Lexem(LexemType.Escape, '[')));
-			escape.BranchTo(']', ']', automata.PushValue(new Lexem(LexemType.Escape, ']')));
-			escape.BranchTo('\\', '\\', automata.PushValue(new Lexem(LexemType.Escape, '\\')));
+			automata.BranchTo(escape, '*', '*', automata.PushValue(new Lexem(LexemType.Escape, '*')));
+			automata.BranchTo(escape, '?', '?', automata.PushValue(new Lexem(LexemType.Escape, '?')));
+			automata.BranchTo(escape, '[', '[', automata.PushValue(new Lexem(LexemType.Escape, '[')));
+			automata.BranchTo(escape, ']', ']', automata.PushValue(new Lexem(LexemType.Escape, ']')));
+			automata.BranchTo(escape, '\\', '\\', automata.PushValue(new Lexem(LexemType.Escape, '\\')));
 
 			var character = automata.PushEmpty();
 			var literal = automata.PushValue(new Lexem(LexemType.Literal));
 
-			character.BranchTo(-1, -1, automata.PushValue(new Lexem(LexemType.End)));
-			character.BranchTo(char.MinValue, ' ', literal);
-			character.BranchTo('!', '!', automata.PushValue(new Lexem(LexemType.Negate)));
-			character.BranchTo('"', ')', literal);
-			character.BranchTo('*', '*', automata.PushValue(new Lexem(LexemType.ZeroOrMore)));
-			character.BranchTo('+', ',', literal);
-			character.BranchTo('-', '-', automata.PushValue(new Lexem(LexemType.Range)));
-			character.BranchTo('.', '>', literal);
-			character.BranchTo('?', '?', automata.PushValue(new Lexem(LexemType.Wildcard)));
-			character.BranchTo('@', 'Z', literal);
-			character.BranchTo('[', '[', automata.PushValue(new Lexem(LexemType.ClassBegin)));
-			character.BranchTo('\\', '\\', escape);
-			character.BranchTo(']', ']', automata.PushValue(new Lexem(LexemType.ClassEnd)));
-			character.BranchTo('^', char.MaxValue, literal);
+			automata.BranchTo(character, -1, -1, automata.PushValue(new Lexem(LexemType.End)));
+			automata.BranchTo(character, char.MinValue, ' ', literal);
+			automata.BranchTo(character, '!', '!', automata.PushValue(new Lexem(LexemType.Negate)));
+			automata.BranchTo(character, '"', ')', literal);
+			automata.BranchTo(character, '*', '*', automata.PushValue(new Lexem(LexemType.ZeroOrMore)));
+			automata.BranchTo(character, '+', ',', literal);
+			automata.BranchTo(character, '-', '-', automata.PushValue(new Lexem(LexemType.Range)));
+			automata.BranchTo(character, '.', '>', literal);
+			automata.BranchTo(character, '?', '?', automata.PushValue(new Lexem(LexemType.Wildcard)));
+			automata.BranchTo(character, '@', 'Z', literal);
+			automata.BranchTo(character, '[', '[', automata.PushValue(new Lexem(LexemType.ClassBegin)));
+			automata.BranchTo(character, '\\', '\\', escape);
+			automata.BranchTo(character, ']', ']', automata.PushValue(new Lexem(LexemType.ClassEnd)));
+			automata.BranchTo(character, '^', char.MaxValue, literal);
 
-			var deterministic = character.ToDeterministic();
+			var deterministic = automata.ToDeterministic(character);
 
 			if (deterministic.Error != ConversionError.None)
 				throw new InvalidOperationException("internal error when initializing glob compiler");

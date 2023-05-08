@@ -13,10 +13,10 @@ namespace Mure.Test.Automata
 			var q1 = automata.PushValue(17);
 			var q2 = automata.PushValue(42);
 
-			q0.BranchTo('a', 'a', q1);
-			q0.BranchTo('a', 'a', q2);
+			automata.BranchTo(q0, 'a', 'a', q1);
+			automata.BranchTo(q0, 'a', 'a', q2);
 
-			var deterministic = q0.ToDeterministic();
+			var deterministic = automata.ToDeterministic(q0);
 
 			Assert.That(deterministic.Error, Is.EqualTo(ConversionError.Collision));
 			Assert.That(deterministic.Values, Is.EquivalentTo(new[] { 17, 42 }));
@@ -30,11 +30,11 @@ namespace Mure.Test.Automata
 			var q1 = automata.PushEmpty();
 			var q2 = automata.PushValue(1);
 
-			q0.BranchTo('a', 'a', q1);
-			q0.EpsilonTo(q1);
-			q1.EpsilonTo(q2);
+			automata.BranchTo(q0, 'a', 'a', q1);
+			automata.EpsilonTo(q0, q1);
+			automata.EpsilonTo(q1, q2);
 
-			var deterministic = ConvertToDeterministic(q0);
+			var deterministic = ConvertToDeterministic(automata, q0);
 			var d0 = deterministic.Start;
 			var state0 = deterministic.States[d0];
 
@@ -60,10 +60,10 @@ namespace Mure.Test.Automata
 			var q0 = automata.PushEmpty();
 			var q1 = automata.PushValue(1);
 
-			q0.BranchTo('a', 'a', q1);
-			q1.EpsilonTo(q1);
+			automata.BranchTo(q0, 'a', 'a', q1);
+			automata.EpsilonTo(q1, q1);
 
-			var deterministic = ConvertToDeterministic(q0);
+			var deterministic = ConvertToDeterministic(automata, q0);
 			var d0 = deterministic.Start;
 			var state0 = deterministic.States[d0];
 
@@ -81,13 +81,14 @@ namespace Mure.Test.Automata
 			Assert.That(state1.Value, Is.EqualTo(1));
 		}
 
-		private static DeterministicAutomata<TValue> ConvertToDeterministic<TValue>(NonDeterministicNode<TValue> start)
+		private static DeterministicAutomata<TValue> ConvertToDeterministic<TValue>(
+			NonDeterministicAutomata<TValue> automata, int start)
 		{
-			var automata = start.ToDeterministic();
+			var deterministic = automata.ToDeterministic(start);
 
-			Assert.That(automata.Error, Is.EqualTo(ConversionError.None));
+			Assert.That(deterministic.Error, Is.EqualTo(ConversionError.None));
 
-			return automata.Result;
+			return deterministic.Result;
 		}
 	}
 }

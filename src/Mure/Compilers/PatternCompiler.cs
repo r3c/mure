@@ -10,7 +10,7 @@ namespace Mure.Compilers
 	{
 		private readonly NonDeterministicAutomata<TValue> _automata;
 		private readonly IMatcher<Lexem> _patternLexer;
-		private readonly NonDeterministicNode<TValue> _start;
+		private readonly int _start;
 
 		protected PatternCompiler(IMatcher<Lexem> patternLexer)
 		{
@@ -23,7 +23,9 @@ namespace Mure.Compilers
 
 		public ICompiler<string, TValue> AddEndOfFile(TValue value)
 		{
-			_start.BranchTo(-1, -1, _automata.PushValue(value));
+			var target = _automata.PushValue(value);
+
+			_automata.BranchTo(_start, -1, -1, target);
 
 			return this;
 		}
@@ -34,14 +36,14 @@ namespace Mure.Compilers
 			var stop = node.ConnectTo(_automata, _start);
 			var tail = _automata.PushValue(value);
 
-			stop.EpsilonTo(tail);
+			_automata.EpsilonTo(stop, tail);
 
 			return this;
 		}
 
 		public IMatcher<TValue> Compile()
 		{
-			var automata = _start.ToDeterministic();
+			var automata = _automata.ToDeterministic(_start);
 
 			return automata.Error switch
 			{

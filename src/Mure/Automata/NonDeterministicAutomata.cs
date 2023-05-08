@@ -21,22 +21,22 @@ namespace Mure.Automata
 			_states[source].Epsilons.Add(target);
 		}
 
-		public NonDeterministicNode<TValue> PushEmpty()
+		public int PushEmpty()
 		{
 			var index = _states.Count;
 
 			_states.Add(new NonDeterministicState<TValue>(default, false));
 
-			return new NonDeterministicNode<TValue>(this, index);
+			return index;
 		}
 
-		public NonDeterministicNode<TValue> PushValue(TValue value)
+		public int PushValue(TValue value)
 		{
 			var index = _states.Count;
 
 			_states.Add(new NonDeterministicState<TValue>(value, true));
 
-			return new NonDeterministicNode<TValue>(this, index);
+			return index;
 		}
 
 		public ConversionResult<DeterministicAutomata<TValue>, TValue> ToDeterministic(int index)
