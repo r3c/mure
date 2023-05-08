@@ -64,7 +64,12 @@ namespace Mure.Compilers
 			character.BranchTo('}', '}', automata.PushValue(new Lexem(LexemType.RepeatEnd)));
 			character.BranchTo('~', char.MaxValue, literal);
 
-			Matcher = new AutomataMatcher<Lexem>(character.ToDeterministic());
+			var deterministic = character.ToDeterministic();
+
+			if (deterministic.Error != ConversionError.None)
+				throw new InvalidOperationException("internal error when initializing regex compiler");
+
+			Matcher = new AutomataMatcher<Lexem>(deterministic.Result);
 		}
 
 		public static Node Match(IMatchIterator<Lexem> iterator)

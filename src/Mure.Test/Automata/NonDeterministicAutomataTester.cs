@@ -1,4 +1,3 @@
-using System;
 using Mure.Automata;
 using NUnit.Framework;
 
@@ -17,7 +16,10 @@ namespace Mure.Test.Automata
 			q0.BranchTo('a', 'a', q1);
 			q0.BranchTo('a', 'a', q2);
 
-			Assert.Throws<InvalidOperationException>(() => q0.ToDeterministic());
+			var deterministic = q0.ToDeterministic();
+
+			Assert.That(deterministic.Error, Is.EqualTo(ConversionError.Collision));
+			Assert.That(deterministic.Values, Is.EquivalentTo(new[] { 17, 42 }));
 		}
 
 		[Test]
@@ -32,7 +34,7 @@ namespace Mure.Test.Automata
 			q0.EpsilonTo(q1);
 			q1.EpsilonTo(q2);
 
-			var deterministic = q0.ToDeterministic();
+			var deterministic = ConvertToDeterministic(q0);
 			var d0 = deterministic.Start;
 			var state0 = deterministic.States[d0];
 
@@ -61,7 +63,7 @@ namespace Mure.Test.Automata
 			q0.BranchTo('a', 'a', q1);
 			q1.EpsilonTo(q1);
 
-			var deterministic = q0.ToDeterministic();
+			var deterministic = ConvertToDeterministic(q0);
 			var d0 = deterministic.Start;
 			var state0 = deterministic.States[d0];
 
@@ -77,6 +79,15 @@ namespace Mure.Test.Automata
 			Assert.That(state1.Branches.Count, Is.EqualTo(0));
 			Assert.That(state1.HasValue, Is.True);
 			Assert.That(state1.Value, Is.EqualTo(1));
+		}
+
+		private static DeterministicAutomata<TValue> ConvertToDeterministic<TValue>(NonDeterministicNode<TValue> start)
+		{
+			var automata = start.ToDeterministic();
+
+			Assert.That(automata.Error, Is.EqualTo(ConversionError.None));
+
+			return automata.Result;
 		}
 	}
 }

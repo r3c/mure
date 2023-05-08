@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using Mure.Automata;
 using Mure.Compilers.Pattern;
 using Mure.Matchers;
@@ -40,7 +41,15 @@ namespace Mure.Compilers
 
 		public IMatcher<TValue> Compile()
 		{
-			return new AutomataMatcher<TValue>(_start.ToDeterministic());
+			var automata = _start.ToDeterministic();
+
+			return automata.Error switch
+			{
+				ConversionError.Collision => throw new InvalidOperationException(
+					$"transition collision between multiple values: {string.Join(", ", automata.Values)}"),
+				ConversionError.None => new AutomataMatcher<TValue>(automata.Result),
+				_ => throw new InvalidOperationException($"internal failure with unknown error '{automata.Error}'")
+			};
 		}
 
 		/// <Summary>
