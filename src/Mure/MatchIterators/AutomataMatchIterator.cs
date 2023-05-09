@@ -1,3 +1,5 @@
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -23,6 +25,16 @@ internal class AutomataMatchIterator<TValue> : IMatchIterator<TValue>
 		_consume = true;
 		_offset = 0;
 		_reader = reader;
+	}
+
+	public IEnumerator<Match<TValue>> GetEnumerator()
+	{
+		return new Enumerator(this);
+	}
+
+	IEnumerator IEnumerable.GetEnumerator()
+	{
+		return GetEnumerator();
 	}
 
 	public bool TryMatchNext(out Match<TValue> match)
@@ -87,6 +99,42 @@ internal class AutomataMatchIterator<TValue> : IMatchIterator<TValue>
 			}
 
 			++index;
+		}
+	}
+
+	private class Enumerator : IEnumerator<Match<TValue>>
+	{
+		public Match<TValue> Current { get; private set; }
+
+		object IEnumerator.Current => Current;
+
+		private readonly IMatchIterator<TValue> _iterator;
+
+		public Enumerator(IMatchIterator<TValue> iterator)
+		{
+			_iterator = iterator;
+
+			Current = default!;
+		}
+
+		public void Dispose()
+		{
+			// No-op
+		}
+
+		public bool MoveNext()
+		{
+			if (!_iterator.TryMatchNext(out var next))
+				return false;
+
+			Current = next;
+
+			return true;
+		}
+
+		public void Reset()
+		{
+			throw new InvalidOperationException($"this instance of {nameof(Enumerator)} cannot be reset");
 		}
 	}
 }
