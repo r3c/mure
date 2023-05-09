@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using NUnit.Framework;
 
 namespace Mure.Test;
@@ -114,20 +115,12 @@ internal class CompilerTester
 			.AddPattern("[\n\r\t ]+", null)
 			.Compile();
 
-		var values = new List<string>();
+		using var reader = new StringReader(expression);
 
-		using (var reader = new StringReader(expression))
-		{
-			var iterator = matcher.Open(reader);
-
-			while (iterator.TryMatchNext(out var match))
-			{
-				if (match.Value is null)
-					continue;
-
-				values.Add(match.Value(match.Capture));
-			}
-		}
+		var values = matcher.Open(reader)
+			.Where(match => match.Value is not null)
+			.Select(match => match.Value!(match.Capture))
+			.ToList();
 
 		Assert.That(string.Join(",", values), Is.EqualTo(expected));
 	}

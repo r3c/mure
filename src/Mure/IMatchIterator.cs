@@ -1,6 +1,8 @@
+using System.Collections.Generic;
+
 namespace Mure;
 
-public interface IMatchIterator<TValue>
+public interface IMatchIterator<TValue> : IEnumerable<Match<TValue>>
 {
 	public int Position { get; }
 
