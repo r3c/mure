@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using NUnit.Framework;
@@ -100,6 +99,36 @@ internal class CompilerTester
 		CompileGlobAndAssert(pattern, subject, capture);
 	}
 
+	[TestCase("", "a?")]
+	[TestCase("a", "aa?")]
+	[TestCase("a+", "a*")]
+	[TestCase("a|b", "b|c")]
+	public void CreateFromRegex_DetectPatternConflict(string pattern1, string pattern2)
+	{
+		var compiler = Compiler.CreateFromRegex<bool>();
+
+		compiler.AddPattern(pattern1, false);
+		compiler.AddPattern(pattern2, true);
+
+		var exception = Assert.Throws<InvalidOperationException>(() => compiler.Compile());
+
+		Assert.That(exception?.Message, Is.EqualTo("transition collision between multiple values: False, True"));
+	}
+
+	[TestCase("[a", "unfinished characters class at position 3")]
+	[TestCase("a{1", "expected end of repeat specifier at position 4")]
+	[TestCase("a{a", "expected end of repeat specifier at position 3")]
+	[TestCase("a{2,1}", "invalid repeat sequence at position 6")]
+	[TestCase("a{1,1,1}", "expected end of repeat specifier at position 6")]
+	[TestCase("\\i", "unrecognized character at position 0")]
+	public void CreateFromRegex_DetectSyntaxError(string pattern, string message)
+	{
+		var compiler = Compiler.CreateFromRegex<bool>();
+		var exception = Assert.Throws<ArgumentException>(() => compiler.AddPattern(pattern, default));
+
+		Assert.That(exception?.Message, Is.EqualTo(message));
+	}
+
 	[TestCase("1\t+\n1", "Integer(1),Plus,Integer(1),End")]
 	[TestCase("1 + (2 - 3)", "Integer(1),Plus,ParenthesisBegin,Integer(2),Minus,Integer(3),ParenthesisEnd,End")]
 	public void CreateFromRegex_IterateExpression(string expression, string expected)
@@ -123,20 +152,6 @@ internal class CompilerTester
 			.ToList();
 
 		Assert.That(string.Join(",", values), Is.EqualTo(expected));
-	}
-
-	[TestCase("[a", "unfinished characters class at position 3")]
-	[TestCase("a{1", "expected end of repeat specifier at position 4")]
-	[TestCase("a{a", "expected end of repeat specifier at position 3")]
-	[TestCase("a{2,1}", "invalid repeat sequence at position 6")]
-	[TestCase("a{1,1,1}", "expected end of repeat specifier at position 6")]
-	[TestCase("\\i", "unrecognized character at position 0")]
-	public void CreateFromRegex_DetectSyntaxError(string pattern, string message)
-	{
-		var compiler = Compiler.CreateFromRegex<bool>();
-		var exception = Assert.Throws<ArgumentException>(() => compiler.AddPattern(pattern, true));
-
-		Assert.That(exception?.Message, Is.EqualTo(message));
 	}
 
 	[TestCase("a|b", "", null)]
