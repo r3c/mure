@@ -1,4 +1,4 @@
-name: Build, check & test
+name: Verify
 
 on:
   pull_request:
@@ -17,7 +17,7 @@ env:
 
 jobs:
   check:
-    name: Check code style
+    name: Check style
     runs-on: ubuntu-latest
 
     steps:
@@ -45,7 +45,7 @@ jobs:
       - run: dotnet build --framework ${{ matrix.dotnet.framework }} src/Mure.sln
 
   test:
-    name: Run tests
+    name: Test
     runs-on: ubuntu-latest
 
     steps:
