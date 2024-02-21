@@ -1,11 +1,9 @@
-Mure: MUlti-valued Regular Expressions
-======================================
+# Mure: MUlti-valued Regular Expressions
 
 [![Build Status](https://img.shields.io/github/actions/workflow/status/r3c/mure/verify.yml?branch=master)](https://github.com/r3c/mure/actions/workflows/verify.yml)
 [![license](https://img.shields.io/github/license/r3c/mure.svg)](https://opensource.org/licenses/MIT)
 
-Overview
---------
+## Overview
 
 Mure is a text stream matching engine with support for a subset of regular
 expressions, able to bind several patterns to a corresponding value and return
@@ -13,8 +11,7 @@ the one value associated to matched pattern. This allows forward-only text
 parsing while mapping each matched sequence to corresponding value, which is a
 efficient solution for tokenization tasks e.g. when writing lexers.
 
-Usage
------
+## Usage
 
 There is no user documentation available yet, sorry!
 
@@ -47,13 +44,7 @@ Matched Minus: -
 Matched Number: 4
 ```
 
-Licence
--------
+## Resource
 
-This project is open-source, released under MIT licence. See `LICENSE.md` file
-for details.
-
-Author
-------
-
-[Rémi Caput](http://remi.caput.fr/) (github.com+mure [at] mirari [dot] fr)
+- Contact: v.github.com+mure [at] mirari [dot] fr
+- License: [license.md](license.md)
