@@ -13,7 +13,7 @@ on:
 env:
   DOTNET_CLI_TELEMETRY_OPTOUT: true
   DOTNET_NOLOGO: true
-  DOTNET_VERSION: 7.0.x 
+  DOTNET_VERSION: 8.0.x 
 
 jobs:
   check:
@@ -28,14 +28,14 @@ jobs:
       - run: dotnet format --no-restore --verify-no-changes src/Mure.sln
 
   build:
-    name: Build for ${{ matrix.dotnet.framework }}
+    name: Build
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
         dotnet: # https://dotnetcli.blob.core.windows.net/dotnet/release-metadata/releases-index.json
-          - framework: net6.0
           - framework: net7.0
+          - framework: net8.0
 
     steps:
       - uses: actions/checkout@v5
@@ -48,9 +48,14 @@ jobs:
     name: Test
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        dotnet:
+          - framework: net8.0
+
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
-      - run: dotnet test --framework net7.0 src/Mure.sln
+      - run: dotnet test --framework ${{ matrix.dotnet.framework }} src/Mure.sln
