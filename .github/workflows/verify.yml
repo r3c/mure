@@ -59,3 +59,15 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
       - run: dotnet test --framework ${{ matrix.dotnet.framework }} src/Mure.sln
+ 
+  validate:
+    name: Validate
+    runs-on: ubuntu-latest
+
+    needs:
+      - build
+      - check
+      - test
+
+    steps:
+      - run: true
