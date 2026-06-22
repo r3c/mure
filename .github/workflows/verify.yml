@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v5
       - run: dotnet format --no-restore --verify-no-changes src/Mure.sln
 
@@ -36,7 +36,7 @@ jobs:
           - framework: net10.0
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v5
       - run: dotnet build --framework ${{ matrix.dotnet.framework }} src/Mure.sln
 
@@ -50,7 +50,7 @@ jobs:
           - framework: net10.0
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v5
       - run: dotnet test --framework ${{ matrix.dotnet.framework }} src/Mure.sln
  
