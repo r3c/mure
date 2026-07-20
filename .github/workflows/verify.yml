@@ -21,7 +21,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-dotnet@v5
+      - uses: actions/setup-dotnet@v6
       - run: dotnet format --no-restore --verify-no-changes src/Mure.sln
 
   build:
@@ -37,7 +37,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-dotnet@v5
+      - uses: actions/setup-dotnet@v6
       - run: dotnet build --framework ${{ matrix.dotnet.framework }} src/Mure.sln
 
   test:
@@ -51,7 +51,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-dotnet@v5
+      - uses: actions/setup-dotnet@v6
       - run: dotnet test --framework ${{ matrix.dotnet.framework }} src/Mure.sln
  
   validate:
