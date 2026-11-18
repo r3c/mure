@@ -57,6 +57,7 @@ jobs:
   validate:
     name: Validate
     runs-on: ubuntu-latest
+    if: ${{ always() }}
 
     needs:
       - build
@@ -64,4 +65,8 @@ jobs:
       - test
 
     steps:
-      - run: true
+      - name: Check validation results
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          printf '%s' "$NEEDS" | jq -e 'all(.result == "success")'
